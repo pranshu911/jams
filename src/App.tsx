@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import SupabaseProvider, { useSupabase } from "./contexts/SupabaseContext";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
+import SupabaseTest from "./pages/SupabaseTest";
 
 // Import AuthGuard
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -54,6 +54,7 @@ const App = () => {
                     <Route path="calendar" element={<Calendar />} />
                     <Route path="analytics" element={<Analytics />} />
                     <Route path="settings" element={<Settings />} />
+                    {/* <Route path="supabase-test" element={<SupabaseTest />} /> */}
                   </Route>
                   
                   <Route path="*" element={<NotFound />} />

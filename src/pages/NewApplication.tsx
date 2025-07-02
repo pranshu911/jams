@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, MapPin, Calendar, User, DollarSign, Send, RotateCcw } from 'lucide-react';
@@ -12,10 +11,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
+import { useSession } from '../hooks/useSession';
+import { supabase } from '../lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  jobTitle: z.string().min(1, 'Job title is required'),
+  title: z.string().min(1, 'Job title is required'),
   company: z.string().min(1, 'Company name is required'),
   location: z.string().optional(),
   description: z.string().optional(),
@@ -25,7 +27,7 @@ const formSchema = z.object({
   hrContact: z.string().email('Please enter a valid email').optional().or(z.literal('')),
   referral: z.string().optional(),
   dateApplied: z.string().min(1, 'Application date is required'),
-  followUpDate: z.string().optional(),
+  followUp: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -48,6 +50,7 @@ const statuses = [
 
 export default function NewApplication() {
   const navigate = useNavigate();
+  const { session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [includeSalary, setIncludeSalary] = useState(false);
   const [includeFollowUp, setIncludeFollowUp] = useState(false);
@@ -55,7 +58,7 @@ export default function NewApplication() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      jobTitle: '',
+      title: '',
       company: '',
       location: '',
       description: '',
@@ -65,21 +68,59 @@ export default function NewApplication() {
       hrContact: '',
       referral: '',
       dateApplied: new Date().toISOString().split('T')[0],
-      followUpDate: '',
+      followUp: '',
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (formData: FormData) => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to save an application');
+      return;
+    }
+
     setIsSubmitting(true);
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const applicationData = {
+        title: formData.title,
+        company: formData.company,
+        location: formData.location || null,
+        description: formData.description || null,
+        platform: platforms.find(p => p.value === formData.platform)?.label || formData.platform,
+        status: statuses.find(s => s.value === formData.status)?.label || formData.status,
+        salary: formData.salary ? parseFloat(formData.salary) : null,
+        hr_contact: formData.hrContact || null,
+        referral: formData.referral || null,
+        date_applied: formData.dateApplied,
+        follow_up: formData.followUp || null,
+        notes: null,
+        user_id: session.user.id,
+      };
+
+      const { error } = await supabase
+        .from('job_applications')
+        .insert([applicationData]);
+
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error('Permission denied. You do not have permission to create this record.');
+        }
+        throw error;
+      }
       
-      console.log('New application data:', data);
       toast.success('Application saved successfully!');
       navigate('/applications');
-    } catch (error) {
-      toast.error('Failed to save application. Please try again.');
+    } catch (error: any) {
+      console.error('Supabase error:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          toast.error('Permission denied. Please check your account permissions.');
+        } else {
+          toast.error(`Failed to save application: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to save application. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -125,7 +166,7 @@ export default function NewApplication() {
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="jobTitle"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-foreground font-medium">Job Title *</FormLabel>
@@ -392,7 +433,7 @@ export default function NewApplication() {
                     {includeFollowUp && (
                       <FormField
                         control={form.control}
-                        name="followUpDate"
+                        name="followUp"
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
@@ -415,14 +456,22 @@ export default function NewApplication() {
             {/* Action Buttons */}
             <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border/50 p-4 -mx-6">
               <div className="max-w-4xl mx-auto flex items-center justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleReset}
-                  className="border-secondary text-secondary hover:bg-secondary/10"
+                <Button 
+                  type="submit" 
+                  className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white"
+                  disabled={isSubmitting}
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset Form
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Save Application
+                    </>
+                  )}
                 </Button>
                 
                 <div className="flex items-center gap-3">
@@ -433,23 +482,6 @@ export default function NewApplication() {
                     className="text-muted-foreground hover:text-foreground"
                   >
                     Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground glow-teal"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Save Application
-                      </>
-                    )}
                   </Button>
                 </div>
               </div>

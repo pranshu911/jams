@@ -1,4 +1,3 @@
-
 import { 
   BarChart3, 
   Calendar, 
@@ -102,7 +101,7 @@ export function AppSidebar() {
       className="border-r border-gray-200 flex flex-col"
       collapsible="icon"
       style={{
-        '--sidebar-width': '16rem',
+        '--sidebar-width': '9.6rem',
         '--sidebar-width-icon': '4rem',
       } as React.CSSProperties}
     >

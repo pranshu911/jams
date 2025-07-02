@@ -91,6 +91,14 @@ export default function Dashboard() {
             New Application
           </Button>
         </Link>
+        {/* TEMP: Supabase Test Button */}
+        {/*
+        <Link to="/supabase-test" style={{ marginLeft: 12 }}>
+          <Button variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500/10">
+            Test Supabase
+          </Button>
+        </Link>
+        */}
       </div>
 
       {/* Stats Grid */}
