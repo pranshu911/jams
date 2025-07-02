@@ -1,0 +1,104 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark Theme Design System - JAMS Application */
+
+@layer base {
+  :root {
+    /* Dark Base Palette */
+    --background: 220 13% 9%;          /* Deep charcoal background */
+    --foreground: 210 40% 95%;         /* Light text */
+
+    --card: 220 13% 12%;               /* Slightly lighter card background */
+    --card-foreground: 210 40% 95%;    /* Light card text */
+
+    --popover: 220 13% 12%;
+    --popover-foreground: 210 40% 95%;
+
+    /* Accent Colors */
+    --primary: 180 100% 50%;           /* Vibrant teal */
+    --primary-foreground: 220 13% 9%;  /* Dark text on teal */
+
+    --secondary: 25 95% 60%;           /* Sunset orange */
+    --secondary-foreground: 220 13% 9%; /* Dark text on orange */
+
+    /* UI States */
+    --muted: 220 13% 16%;              /* Muted backgrounds */
+    --muted-foreground: 210 20% 70%;   /* Muted text */
+
+    --accent: 220 13% 16%;             /* Accent backgrounds */
+    --accent-foreground: 210 40% 95%;  /* Accent text */
+
+    --destructive: 0 84% 60%;          /* Red for destructive actions */
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders and Inputs */
+    --border: 220 13% 20%;             /* Subtle borders */
+    --input: 220 13% 20%;              /* Input borders */
+    --ring: 180 100% 50%;              /* Focus rings (teal) */
+
+    --radius: 0.75rem;                 /* 12px rounded corners */
+
+    /* Sidebar specific colors */
+    --sidebar-background: 220 13% 8%;   /* Slightly darker sidebar */
+    --sidebar-foreground: 210 20% 80%;  /* Sidebar text */
+    --sidebar-primary: 180 100% 50%;    /* Teal for active items */
+    --sidebar-primary-foreground: 220 13% 9%;
+    --sidebar-accent: 220 13% 14%;      /* Hover states */
+    --sidebar-accent-foreground: 210 40% 95%;
+    --sidebar-border: 220 13% 18%;      /* Sidebar borders */
+    --sidebar-ring: 180 100% 50%;       /* Focus rings */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-lg;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer components {
+  /* Glow effects for buttons and interactive elements */
+  .glow-teal {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(255, 154, 92, 0.3);
+  }
+
+  /* Gradient backgrounds for cards */
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(220 13% 14%) 100%);
+  }
+
+  /* Enhanced shadows for depth */
+  .shadow-elegant {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
