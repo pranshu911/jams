@@ -11,12 +11,12 @@ import Calendar from "./pages/Calendar";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import SupabaseProvider, { useSupabase } from "./contexts/SupabaseContext";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 import SupabaseTest from "./pages/SupabaseTest";
 import ArchivedApplications from "./pages/ArchivedApplications";
+import Landing from "./pages/Landing";
 
 // Import AuthGuard
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -37,7 +37,7 @@ const App = () => {
               <BrowserRouter>
                 <Routes>
                   {/* Public routes */}
-                  <Route path="/signin" element={<SignIn />} />
+                  <Route path="/signin" element={<Landing />} />
                   <Route path="/signup" element={<SignUp />} />
                   
                   {/* Protected routes */}

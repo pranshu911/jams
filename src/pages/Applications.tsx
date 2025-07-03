@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Filter, MoreHorizontal, ExternalLink, Loader2, Edit, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,12 @@ export default function Applications() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'delete'|'archive'|'interview'|'rejected'|null>(null);
   const [pendingApp, setPendingApp] = useState<any>(null);
+  const [searchValue, setSearchValue] = useState('');
+  const [filteredApplications, setFilteredApplications] = useState(applications.filter(app => !app.is_archive));
+
+  useEffect(() => {
+    setFilteredApplications(applications.filter(app => !app.is_archive));
+  }, [applications]);
 
   // Show error toast if there's an error
   React.useEffect(() => {
@@ -83,8 +89,6 @@ export default function Applications() {
       });
     }
   }, [error, toast]);
-
-  const filteredApplications = applications.filter(app => !app.is_archive);
 
   const handleViewDetails = (application: any) => {
     setSelectedApplication(mapApplication(application));
@@ -238,6 +242,20 @@ export default function Applications() {
     }
   };
 
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const value = searchValue.toLowerCase();
+      const filtered = applications.filter(app =>
+        !app.is_archive && (
+          app.title.toLowerCase().includes(value) ||
+          app.company.toLowerCase().includes(value) ||
+          (app.location && app.location.toLowerCase().includes(value))
+        )
+      );
+      setFilteredApplications(filtered);
+    }
+  };
+
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
@@ -259,6 +277,24 @@ export default function Applications() {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex flex-col gap-1 mb-4">
+        <input
+          type="text"
+          placeholder="Search by title, company, or location"
+          className="px-4 py-2 border border-border rounded-lg bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+          style={{ width: '30%' }}
+          value={searchValue}
+          onChange={e => setSearchValue(e.target.value)}
+          onKeyDown={handleSearch}
+        />
+        {searchValue && (
+          <span className="text-sm text-muted-foreground mt-1">
+            Showing results for <span className="font-semibold text-primary">"{searchValue}"</span>
+          </span>
+        )}
       </div>
 
       {/* Bulk Actions Bar */}

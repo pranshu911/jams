@@ -43,14 +43,6 @@ export function TopHeader() {
       </nav>
       {/* Search Bar Top Right and Profile Dropdown, right-aligned */}
       <div className="flex items-center gap-x-4 flex-none min-w-0 justify-end ml-auto">
-        <div className="relative w-3/8 min-w-[120px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            type="text"
-            placeholder="Search applications..."
-            className="pl-10 bg-muted/50 border-border/50 focus:bg-card focus:border-primary/50 focus:ring-2 focus:ring-primary/20 rounded-xl transition-all duration-200 w-full"
-          />
-        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="p-0 hover:bg-accent/50 rounded-xl transition-all duration-200">

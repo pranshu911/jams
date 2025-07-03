@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MoreHorizontal, ExternalLink, Loader2, Edit, ArchiveRestore, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,12 @@ export default function ArchivedApplications() {
   const [dialogType, setDialogType] = useState<'delete'|'unarchive'|'rejected'|null>(null);
   const [pendingApp, setPendingApp] = useState<any>(null);
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
+  const [searchValue, setSearchValue] = useState('');
+  const [filteredApplications, setFilteredApplications] = useState(applications.filter(app => app.is_archive));
+
+  useEffect(() => {
+    setFilteredApplications(applications.filter(app => app.is_archive));
+  }, [applications]);
 
   React.useEffect(() => {
     if (error) {
@@ -216,6 +222,18 @@ export default function ArchivedApplications() {
     }
   };
 
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const value = searchValue.toLowerCase();
+      const filtered = archivedApplications.filter(app =>
+        app.title.toLowerCase().includes(value) ||
+        app.company.toLowerCase().includes(value) ||
+        (app.location && app.location.toLowerCase().includes(value))
+      );
+      setFilteredApplications(filtered);
+    }
+  };
+
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
@@ -231,6 +249,24 @@ export default function ArchivedApplications() {
             View Active Applications
           </Button>
         </Link>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex flex-col gap-1 mb-4">
+        <input
+          type="text"
+          placeholder="Search by title, company, or location"
+          className="px-4 py-2 border border-border rounded-lg bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+          style={{ width: '30%' }}
+          value={searchValue}
+          onChange={e => setSearchValue(e.target.value)}
+          onKeyDown={handleSearch}
+        />
+        {searchValue && (
+          <span className="text-sm text-muted-foreground mt-1">
+            Showing results for <span className="font-semibold text-primary">"{searchValue}"</span>
+          </span>
+        )}
       </div>
 
       {/* Bulk Actions Bar */}
@@ -285,14 +321,14 @@ export default function ArchivedApplications() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {archivedApplications.length === 0 ? (
+                {filteredApplications.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No archived applications found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  archivedApplications.map((app) => (
+                  filteredApplications.map((app) => (
                     <TableRow 
                       key={app.id} 
                       className="border-b border-border/30 hover:bg-accent/30 transition-all duration-200 cursor-pointer"
