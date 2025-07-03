@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Filter, MoreHorizontal, ExternalLink, Loader2, Edit } from "lucide-react";
+import { Plus, Filter, MoreHorizontal, ExternalLink, Loader2, Edit, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -71,6 +71,7 @@ export default function Applications() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'delete'|'archive'|'interview'|'rejected'|null>(null);
+  const [pendingApp, setPendingApp] = useState<any>(null);
 
   // Show error toast if there's an error
   React.useEffect(() => {
@@ -129,6 +130,39 @@ export default function Applications() {
     }
   };
 
+  const handleArchiveApplication = (application: any) => {
+    setDialogType('archive');
+    setPendingApp(application);
+    setDialogOpen(true);
+  };
+
+  const confirmDialogAction = async () => {
+    if (!pendingApp) return;
+    if (dialogType === 'archive') {
+      try {
+        const { error } = await supabase
+          .from('job_applications')
+          .update({ is_archive: true })
+          .eq('id', pendingApp.id);
+        if (error) throw error;
+        toast({ title: 'Application archived.' });
+        refresh();
+      } catch (error) {
+        toast({ title: 'Failed to archive application.', variant: 'destructive' });
+        console.error(error);
+      }
+    } else if (dialogType === 'delete') {
+      handleDeleteApplication(pendingApp);
+    } else if (dialogType === 'interview') {
+      // ... existing code ...
+    } else if (dialogType === 'rejected') {
+      // ... existing code ...
+    }
+    setDialogOpen(false);
+    setDialogType(null);
+    setPendingApp(null);
+  };
+
   const handleBulkAction = async (action: 'interview'|'rejected'|'archive'|'delete') => {
     if (selectedApplications.length === 0) return;
     let updateData = {};
@@ -177,12 +211,19 @@ export default function Applications() {
           <h1 className="text-3xl font-bold text-foreground">Applications</h1>
           <p className="text-muted-foreground mt-1">Track and manage your job applications</p>
         </div>
-        <Link to="/applications/new">
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground glow-teal">
-            <Plus className="h-4 w-4 mr-2" />
-            New Application
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/applications/new">
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground glow-teal">
+              <Plus className="h-4 w-4 mr-2" />
+              New Application
+            </Button>
+          </Link>
+          <Link to="/archived-applications">
+            <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+              View Archived Applications
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Bulk Actions Bar */}
@@ -225,7 +266,7 @@ export default function Applications() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => handleBulkAction(dialogType!)}>
+                <AlertDialogAction onClick={confirmDialogAction}>
                   Confirm
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -327,9 +368,17 @@ export default function Applications() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem 
+                            className="hover:bg-accent/50"
+                            onClick={() => handleArchiveApplication(app)}
+                          >
+                            <Archive className="w-4 h-4 mr-2" />
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
                             className="text-red-400 hover:bg-red-500/20 focus:text-red-400"
                             onClick={() => handleDeleteApplication(app)}
                           >
+                            <Trash2 className="w-4 h-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>

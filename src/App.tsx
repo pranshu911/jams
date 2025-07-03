@@ -16,6 +16,7 @@ import SignUp from "./pages/SignUp";
 import SupabaseProvider, { useSupabase } from "./contexts/SupabaseContext";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 import SupabaseTest from "./pages/SupabaseTest";
+import ArchivedApplications from "./pages/ArchivedApplications";
 
 // Import AuthGuard
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -51,6 +52,7 @@ const App = () => {
                     <Route index element={<Dashboard />} />
                     <Route path="applications" element={<Applications />} />
                     <Route path="applications/new" element={<NewApplication />} />
+                    <Route path="archived-applications" element={<ArchivedApplications />} />
                     <Route path="calendar" element={<Calendar />} />
                     <Route path="analytics" element={<Analytics />} />
                     <Route path="settings" element={<Settings />} />
