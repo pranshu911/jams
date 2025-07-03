@@ -24,6 +24,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 interface Application {
   id: number;
@@ -40,6 +50,7 @@ interface Application {
   description?: string;
   notes?: string;
   followUp?: string;
+  is_archive: boolean;
 }
 
 interface ApplicationDetailsProps {
@@ -109,6 +120,8 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [dialogType, setDialogType] = React.useState<'delete' | 'archive' | null>(null);
   React.useEffect(() => { setIsEditing(editMode); }, [application, editMode]);
   if (!application) return null;
 
@@ -176,43 +189,53 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
 
   // Delete handler
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this application? This action cannot be undone.')) return;
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('job_applications')
-        .delete()
-        .eq('id', application.id);
-      if (error) throw error;
-      toast.success('Application deleted.');
-      onClose();
-      if (refresh) refresh();
-    } catch (error) {
-      toast.error('Failed to delete application.');
-      console.error(error);
-    } finally {
-      setIsDeleting(false);
-    }
+    setDialogType('delete');
+    setDialogOpen(true);
   };
 
   // Archive handler
   const handleArchive = async () => {
-    setIsArchiving(true);
-    try {
-      const { error } = await supabase
-        .from('job_applications')
-        .update({ is_archive: true })
-        .eq('id', application.id);
-      if (error) throw error;
-      toast.success('Application archived.');
-      onClose();
-      if (refresh) refresh();
-    } catch (error) {
-      toast.error('Failed to archive application.');
-      console.error(error);
-    } finally {
-      setIsArchiving(false);
+    setDialogType('archive');
+    setDialogOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    if (dialogType === 'delete') {
+      setIsDeleting(true);
+      try {
+        const { error } = await supabase
+          .from('job_applications')
+          .delete()
+          .eq('id', application.id);
+        if (error) throw error;
+        toast.success('Application deleted.');
+        onClose();
+        if (refresh) refresh();
+      } catch (error) {
+        toast.error('Failed to delete application.');
+        console.error(error);
+      } finally {
+        setIsDeleting(false);
+      }
+    } else if (dialogType === 'archive') {
+      setIsArchiving(true);
+      try {
+        const { error } = await supabase
+          .from('job_applications')
+          .update({ is_archive: !application.is_archive })
+          .eq('id', application.id);
+        if (error) throw error;
+        toast.success(application.is_archive ? 'Application un-archived.' : 'Application archived.');
+        onClose();
+        if (refresh) refresh();
+      } catch (error) {
+        toast.error(application.is_archive ? 'Failed to un-archive application.' : 'Failed to archive application.');
+        console.error(error);
+      } finally {
+        setIsArchiving(false);
+      }
     }
+    setDialogOpen(false);
   };
 
   return (
@@ -252,9 +275,15 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                       <Trash2 className="w-4 h-4 mr-2" />
                       {isDeleting ? 'Deleting...' : 'Delete'}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-accent/50" onClick={handleArchive}>
+                    <DropdownMenuItem
+                      className="hover:bg-accent/50"
+                      onClick={() => {
+                        setDialogType('archive');
+                        setDialogOpen(true);
+                      }}
+                    >
                       <Archive className="w-4 h-4 mr-2" />
-                      {isArchiving ? 'Archiving...' : 'Archive'}
+                      {application.is_archive ? (isArchiving ? 'Un-archiving...' : 'Un-archive') : (isArchiving ? 'Archiving...' : 'Archive')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -591,6 +620,36 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
             )}
           </div>
         </div>
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {dialogType === 'delete'
+                  ? 'Delete Application'
+                  : application.is_archive
+                    ? 'Un-archive Application'
+                    : 'Archive Application'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {dialogType === 'delete'
+                  ? 'Are you sure you want to delete this application? This action cannot be undone.'
+                  : application.is_archive
+                    ? 'Are you sure you want to un-archive this application?'
+                    : 'Are you sure you want to archive this application? This action cannot be undone.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirm}>
+                {dialogType === 'delete'
+                  ? 'Delete'
+                  : application.is_archive
+                    ? 'Un-archive'
+                    : 'Archive'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );

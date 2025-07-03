@@ -95,14 +95,20 @@ export default function ArchivedApplications() {
     setIsDetailsOpen(true);
   };
 
-  const handleUnarchiveApplication = async (application: any) => {
+  const handleUnarchiveApplication = (application: any) => {
     setDialogType('unarchive');
     setPendingApp(application);
     setDialogOpen(true);
   };
 
-  const handleDeleteApplication = async (application: any) => {
+  const handleDeleteApplication = (application: any) => {
     setDialogType('delete');
+    setPendingApp(application);
+    setDialogOpen(true);
+  };
+
+  const handleMarkRejected = (application: any) => {
+    setDialogType('rejected');
     setPendingApp(application);
     setDialogOpen(true);
   };
@@ -160,6 +166,56 @@ export default function ArchivedApplications() {
     }
   };
 
+  const confirmDialogAction = async () => {
+    try {
+      if (selectedApplications.length > 0) {
+        // Bulk action
+        if (dialogType === 'unarchive') {
+          await handleBulkAction('unarchive');
+        } else if (dialogType === 'delete') {
+          await handleBulkAction('delete');
+        } else if (dialogType === 'rejected') {
+          await handleBulkAction('rejected');
+        }
+      } else if (pendingApp) {
+        // Single action
+        if (dialogType === 'unarchive') {
+          const { error } = await supabase
+            .from('job_applications')
+            .update({ is_archive: false })
+            .eq('id', pendingApp.id);
+          if (error) throw error;
+          toast({ title: 'Application un-archived.' });
+          refresh();
+        } else if (dialogType === 'delete') {
+          const { error } = await supabase
+            .from('job_applications')
+            .delete()
+            .eq('id', pendingApp.id);
+          if (error) throw error;
+          toast({ title: 'Application deleted.' });
+          refresh();
+        } else if (dialogType === 'rejected') {
+          const { error } = await supabase
+            .from('job_applications')
+            .update({ status: 'Rejected' })
+            .eq('id', pendingApp.id);
+          if (error) throw error;
+          toast({ title: 'Application marked as Rejected.' });
+          refresh();
+        }
+      }
+    } catch (error) {
+      toast({ title: 'Action failed.', variant: 'destructive' });
+      console.error(error);
+    } finally {
+      setDialogOpen(false);
+      setDialogType(null);
+      setPendingApp(null);
+      setSelectedApplications([]);
+    }
+  };
+
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
@@ -196,28 +252,6 @@ export default function ArchivedApplications() {
               </Button>
             </div>
           </div>
-          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {dialogType === 'delete' && 'Delete Applications'}
-                  {dialogType === 'unarchive' && 'Un-archive Applications'}
-                  {dialogType === 'rejected' && 'Mark as Rejected'}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {dialogType === 'delete' && 'Are you sure you want to delete the selected applications? This action cannot be undone.'}
-                  {dialogType === 'unarchive' && 'Are you sure you want to un-archive the selected applications?'}
-                  {dialogType === 'rejected' && 'Mark all selected applications as Rejected?'}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => handleBulkAction(dialogType!)}>
-                  Confirm
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       )}
 
@@ -310,14 +344,14 @@ export default function ArchivedApplications() {
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="hover:bg-accent/50"
-                              onClick={() => handleUnarchiveApplication(app)}
+                              onClick={() => setTimeout(() => handleUnarchiveApplication(app), 0)}
                             >
                               <ArchiveRestore className="w-4 h-4 mr-2" />
                               Un-archive
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-400 hover:bg-red-500/20 focus:text-red-400"
-                              onClick={() => handleDeleteApplication(app)}
+                              onClick={() => setTimeout(() => handleDeleteApplication(app), 0)}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
@@ -344,6 +378,30 @@ export default function ArchivedApplications() {
           )}
         </div>
       )}
+
+      {/* Alert Dialog */}
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {dialogType === 'delete' && 'Delete Applications'}
+              {dialogType === 'unarchive' && 'Un-archive Applications'}
+              {dialogType === 'rejected' && 'Mark as Rejected'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {dialogType === 'delete' && 'Are you sure you want to delete the selected applications? This action cannot be undone.'}
+              {dialogType === 'unarchive' && 'Are you sure you want to un-archive the selected applications?'}
+              {dialogType === 'rejected' && 'Mark all selected applications as Rejected?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDialogAction}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 
