@@ -251,41 +251,12 @@ export default function Analytics() {
         })()}
       </div>
 
-      {/* Applications by Platform Bar Chart */}
-      <div className="rounded-2xl border border-border/50 bg-background/80 shadow-elegant p-6 mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-6">Applications by Platform</h2>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={platformData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={13} />
-              <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={14} width={120} />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const { name, applications } = payload[0].payload;
-                    return (
-                      <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{name}</div>
-                        <div style={{ fontSize: 12 }}>{applications} application{applications === 1 ? '' : 's'}</div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="applications" fill="#00FFFF" radius={[0, 8, 8, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
       <div className="rounded-2xl border border-border/50 bg-background/80 shadow-elegant p-8 min-h-[300px] flex flex-col items-center justify-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Applications Over Time Chart */}
           <div className="lg:col-span-2 flex flex-col gap-2">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-foreground">Applications Over Time</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-6">Applications Over Time</h2>
               <TripleToggle
                 labels={["Days", "Weeks", "Months"]}
                 value={timeView === 'days' ? 'left' : timeView === 'weeks' ? 'center' : 'right'}
@@ -326,7 +297,7 @@ export default function Analytics() {
           </div>
           {/* Status Distribution Chart */}
           <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold text-foreground mb-2">Status Distribution</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-6">Status Distribution</h2>
             <div className="h-80 bg-gradient-to-br from-secondary/10 via-secondary/5 to-primary/10 rounded-2xl flex flex-col items-center justify-center border border-border/30 p-4">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -374,6 +345,43 @@ export default function Analytics() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Applications by Platform and Left Chart Row */}
+      <div className="w-full flex flex-col lg:flex-row gap-6 mb-8">
+        {/* Left side placeholder for future chart */}
+        <div className="w-full lg:w-2/5 rounded-2xl border border-dashed border-border/50 bg-background/60 shadow-none p-6 flex items-center justify-center min-h-[288px] mb-6 lg:mb-0">
+          {/* TODO: Add chart here */}
+          <span className="text-muted-foreground">(Chart coming soon)</span>
+        </div>
+        {/* Applications by Platform Bar Chart - right side, 60% width */}
+        <div className="w-full lg:w-3/5 rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6">
+          <h2 className="text-2xl font-bold text-foreground mb-6">Applications by Platform</h2>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={platformData} layout="vertical" margin={{ left: 20, right: 40, top: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={13} />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={14} width={120} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const { name, applications } = payload[0].payload;
+                      return (
+                        <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                          <div style={{ fontWeight: 600, marginBottom: 2 }}>{name}</div>
+                          <div style={{ fontSize: 12 }}>{applications} application{applications === 1 ? '' : 's'}</div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="applications" fill="#00FFFF" radius={[0, 8, 8, 0]} barSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
