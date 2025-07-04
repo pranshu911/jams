@@ -7,7 +7,7 @@ import React, { useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area,
-  PieChart, Pie, Cell
+  PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { TripleToggle } from '@/components/ui/triple-toggle';
 
@@ -114,6 +114,24 @@ export default function Analytics() {
   const green = 'text-green-500';
   const red = 'text-red-500';
   const gray = 'text-muted-foreground';
+
+  // Applications by Platform data
+  const platformData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    activeApps.forEach(app => {
+      const platform = app.platform?.trim() || 'Unknown';
+      counts[platform] = (counts[platform] || 0) + 1;
+    });
+    // Sort platforms by count desc
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const top5 = sorted.slice(0, 5);
+    const othersCount = sorted.slice(5).reduce((sum, [, count]) => sum + count, 0);
+    const data = top5.map(([name, applications]) => ({ name, applications }));
+    if (othersCount > 0) {
+      data.push({ name: 'Others', applications: othersCount });
+    }
+    return data;
+  }, [activeApps]);
 
   return (
     <div className="space-y-6">
@@ -231,6 +249,35 @@ export default function Analytics() {
             </Card>
           ));
         })()}
+      </div>
+
+      {/* Applications by Platform Bar Chart */}
+      <div className="rounded-2xl border border-border/50 bg-background/80 shadow-elegant p-6 mb-8">
+        <h2 className="text-2xl font-bold text-foreground mb-6">Applications by Platform</h2>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={platformData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={13} />
+              <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={14} width={120} />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const { name, applications } = payload[0].payload;
+                    return (
+                      <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{name}</div>
+                        <div style={{ fontSize: 12 }}>{applications} application{applications === 1 ? '' : 's'}</div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="applications" fill="#00FFFF" radius={[0, 8, 8, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-border/50 bg-background/80 shadow-elegant p-8 min-h-[300px] flex flex-col items-center justify-center">
