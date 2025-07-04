@@ -1,59 +1,119 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, Area, AreaChart, PieChart, Pie, Cell } from "recharts";
-import { Calendar, Filter, Download, TrendingUp, Users, Target, Zap } from "lucide-react";
-import { useState } from "react";
-
-const platformData = [
-  { name: "LinkedIn", applications: 45, color: "#00FFFF" },
-  { name: "Indeed", applications: 32, color: "#FF9A5C" },
-  { name: "Glassdoor", applications: 28, color: "#00FFFF" },
-  { name: "Company Site", applications: 23, color: "#FF9A5C" },
-  { name: "AngelList", applications: 18, color: "#00FFFF" },
-];
-
-const timelineData = [
-  { date: "Week 1", applications: 12, interviews: 2 },
-  { date: "Week 2", applications: 18, interviews: 4 },
-  { date: "Week 3", applications: 15, interviews: 6 },
-  { date: "Week 4", applications: 22, interviews: 8 },
-  { date: "Week 5", applications: 28, interviews: 5 },
-  { date: "Week 6", applications: 25, interviews: 9 },
-];
-
-const statusData = [
-  { name: "Applied", value: 78, color: "#6B7280" },
-  { name: "Phone Screen", value: 24, color: "#F59E0B" },
-  { name: "Interview", value: 18, color: "#00FFFF" },
-  { name: "Offer", value: 5, color: "#10B981" },
-  { name: "Rejected", value: 12, color: "#EF4444" },
-];
-
-const chartConfig = {
-  applications: {
-    label: "Applications",
-    color: "#00FFFF",
-  },
-  interviews: {
-    label: "Interviews", 
-    color: "#FF9A5C",
-  },
-};
+import { Download } from "lucide-react";
+import { TrendingUp, Users, Target, Zap, Archive, RefreshCw, XCircle, CheckCircle2 } from "lucide-react";
+import React, { useMemo } from 'react';
+import { useApplications } from '../hooks/useApplications';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area,
+  PieChart, Pie, Cell
+} from 'recharts';
+import { TripleToggle } from '@/components/ui/triple-toggle';
 
 export default function Analytics() {
-  const [filterOpen, setFilterOpen] = useState(true);
-  const [dateRange, setDateRange] = useState("30d");
-  const [platformFilters, setPlatformFilters] = useState({
-    linkedin: true,
-    indeed: true,
-    glassdoor: true,
-    company: true,
-    angellist: true,
-  });
+  // Applications data for charts
+  const { data: applications, isLoading } = useApplications();
+  const activeApps = useMemo(() =>
+    applications.filter(app => !app.is_archive),
+    [applications]
+  );
+
+  // Toggle state for Applications Over Time
+  const [timeView, setTimeView] = React.useState<'days' | 'weeks' | 'months'>('weeks');
+
+  // Applications Over Time data logic
+  const applicationsOverTime = useMemo(() => {
+    if (timeView === 'days') {
+      // Last 8 days
+      const days: { date: Date }[] = [];
+      const now = new Date();
+      for (let i = 7; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        days.push({ date: d });
+      }
+      return days.map(({ date }) => {
+        const count = activeApps.filter(app => {
+          const applied = new Date(app.date_applied);
+          applied.setHours(0, 0, 0, 0);
+          return applied.getTime() === date.getTime();
+        }).length;
+        const label = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return { x: label, count };
+      });
+    } else if (timeView === 'months') {
+      // Last 8 months
+      const months: { year: number, month: number }[] = [];
+      const now = new Date();
+      for (let i = 7; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({ year: d.getFullYear(), month: d.getMonth() });
+      }
+      return months.map(({ year, month }) => {
+        const count = activeApps.filter(app => {
+          const applied = new Date(app.date_applied);
+          return applied.getFullYear() === year && applied.getMonth() === month;
+        }).length;
+        const label = new Date(year, month, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+        return { x: label, count };
+      });
+    } else {
+      // Weeks (default, last 8 weeks, Monday-Sunday)
+      function getMonday(d: Date) {
+        const date = new Date(d);
+        const day = date.getDay();
+        const diff = (day === 0 ? -6 : 1) - day;
+        date.setDate(date.getDate() + diff);
+        date.setHours(0, 0, 0, 0);
+        return date;
+      }
+      const now = new Date();
+      const weeks: { start: Date; end: Date }[] = [];
+      let currentMonday = getMonday(now);
+      for (let i = 0; i < 8; i++) {
+        const weekStart = new Date(currentMonday);
+        const weekEnd = new Date(currentMonday);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        weeks.unshift({ start: new Date(weekStart), end: new Date(weekEnd) });
+        currentMonday.setDate(currentMonday.getDate() - 7);
+      }
+      return weeks.map(({ start, end }) => {
+        const count = activeApps.filter(app => {
+          const applied = new Date(app.date_applied);
+          applied.setHours(0, 0, 0, 0);
+          return applied >= start && applied <= end;
+        }).length;
+        const label = `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}–${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+        return { x: label, count };
+      });
+    }
+  }, [activeApps, timeView]);
+
+  // Status Distribution data for donut chart
+  const statusColors: Record<string, string> = {
+    Applied: '#6B7280',
+    'Phone Screen': '#F59E0B',
+    Interview: '#00FFFF',
+    Offer: '#10B981',
+    Rejected: '#EF4444',
+  };
+  const statusOrder = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected'];
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const status of statusOrder) counts[status] = 0;
+    activeApps.forEach(app => {
+      const status = statusOrder.find(s => app.status.toLowerCase() === s.toLowerCase()) || app.status;
+      counts[status] = (counts[status] || 0) + 1;
+    });
+    return statusOrder.map(status => ({ name: status, value: counts[status], color: statusColors[status] }));
+  }, [activeApps]);
+
+  // Color helpers
+  const green = 'text-green-500';
+  const red = 'text-red-500';
+  const gray = 'text-muted-foreground';
 
   return (
     <div className="space-y-6">
@@ -71,206 +131,202 @@ export default function Analytics() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setFilterOpen(!filterOpen)}
-            className="border-border/50 hover:border-primary/50"
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
-          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Filter Panel */}
-        {filterOpen && (
-          <div className="lg:col-span-3">
-            <Card className="gradient-card border-border/50 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-primary" />
-                  Filters
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Date Range */}
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-3 block">Date Range</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["7d", "30d", "90d", "1y"].map((range) => (
-                      <Button
-                        key={range}
-                        variant={dateRange === range ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setDateRange(range)}
-                        className={dateRange === range ? "glow-teal" : "border-border/50"}
-                      >
-                        {range === "7d" ? "7 Days" : range === "30d" ? "30 Days" : range === "90d" ? "90 Days" : "1 Year"}
-                      </Button>
-                    ))}
+      {/* Stat Cards: 2x4 grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 mb-6">
+        {(() => {
+          // Calculations
+          const totalActive = activeApps.length;
+          const processing = activeApps.filter(app => {
+            const s = app.status.toLowerCase();
+            return s === 'applied' || s === 'phone screen';
+          }).length;
+          const interviews = activeApps.filter(app => app.status.toLowerCase() === 'interview').length;
+          const offers = activeApps.filter(app => app.status.toLowerCase() === 'offer').length;
+          const responded = activeApps.filter(app => app.status.toLowerCase() !== 'applied').length;
+          const responseRate = totalActive > 0 ? Math.round((responded / totalActive) * 100) : 0;
+          const offerRate = (offers + interviews) > 0 ? Math.round((offers / (offers + interviews)) * 100) : 0;
+          const rejections = activeApps.filter(app => app.status.toLowerCase() === 'rejected').length;
+          const rejectionRate = totalActive > 0 ? Math.round((rejections / totalActive) * 100) : 0;
+          const archived = applications.filter(app => app.is_archive).length;
+          // Card data
+          const stats = [
+            {
+              label: "Total Applications",
+              value: totalActive,
+              icon: Target,
+              color: "primary",
+              glow: "glow-teal"
+            },
+            {
+              label: "Processing Applications",
+              value: processing,
+              icon: RefreshCw,
+              color: "secondary",
+              glow: "glow-orange"
+            },
+            {
+              label: "Interviews",
+              value: interviews,
+              icon: Users,
+              color: "primary",
+              glow: "glow-teal"
+            },
+            {
+              label: "Offers",
+              value: offers,
+              icon: CheckCircle2,
+              color: green,
+              glow: "glow-teal"
+            },
+            {
+              label: "Response Rate",
+              value: `${responseRate}%`,
+              icon: TrendingUp,
+              color: "primary",
+              glow: "glow-teal"
+            },
+            {
+              label: "Offer Rate",
+              value: `${offerRate}%`,
+              icon: Zap,
+              color: green,
+              glow: "glow-teal"
+            },
+            {
+              label: "Rejection Rate",
+              value: `${rejectionRate}%`,
+              icon: XCircle,
+              color: red,
+              glow: "glow-orange"
+            },
+            {
+              label: "Archived Applications",
+              value: archived,
+              icon: Archive,
+              color: gray,
+              glow: ""
+            },
+          ];
+          return stats.map((stat, index) => (
+            <Card key={index} className={`gradient-card border-border/50 shadow-elegant hover:shadow-lg transition-all duration-300 hover:${stat.glow}`}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
                   </div>
-                </div>
-
-                {/* Platform Filters */}
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-3 block">Platforms</label>
-                  <div className="space-y-3">
-                    {Object.entries(platformFilters).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground capitalize">{key}</span>
-                        <Switch
-                          checked={value}
-                          onCheckedChange={(checked) => 
-                            setPlatformFilters(prev => ({ ...prev, [key]: checked }))
-                          }
-                        />
-                      </div>
-                    ))}
+                  <div className={`p-3 rounded-lg border ${
+                    stat.color === green ? 'bg-green-100/20 border-green-200' :
+                    stat.color === red ? 'bg-red-100/20 border-red-200' :
+                    stat.color === gray ? 'bg-muted border-border' :
+                    `bg-${stat.color}/10 border-${stat.color}/20`
+                  }`}>
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
-                </div>
-
-                <div className="pt-4 border-t border-border/50 space-y-2">
-                  <Button className="w-full glow-teal">Apply Filters</Button>
-                  <Button variant="outline" className="w-full border-secondary/50 text-secondary hover:bg-secondary/10">
-                    Clear All
-                  </Button>
                 </div>
               </CardContent>
             </Card>
+          ));
+        })()}
+      </div>
+
+      <div className="rounded-2xl border border-border/50 bg-background/80 shadow-elegant p-8 min-h-[300px] flex flex-col items-center justify-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Applications Over Time Chart */}
+          <div className="lg:col-span-2 flex flex-col gap-2">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-foreground">Applications Over Time</h2>
+              <TripleToggle
+                labels={["Days", "Weeks", "Months"]}
+                value={timeView === 'days' ? 'left' : timeView === 'weeks' ? 'center' : 'right'}
+                onChange={v => setTimeView(v === 'left' ? 'days' : v === 'center' ? 'weeks' : 'months')}
+              />
+            </div>
+            <div className="h-80 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl flex items-center justify-center border border-border/30 p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={applicationsOverTime} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#00FFFF" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="x" tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 500 }} fontSize={12} angle={-20} textAnchor="end" interval={0} height={50} />
+                  <YAxis allowDecimals={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 500 }} fontSize={12} />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const { count } = payload[0].payload;
+                        return (
+                          <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 2 }}>{payload[0].payload.x}</div>
+                            <div style={{ fontSize: 12 }}>{count} application{count === 1 ? '' : 's'}</div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area type="monotone" dataKey="count" stroke="#00FFFF" fill="url(#tealGradient)" strokeWidth={0} dot={false} activeDot={false} />
+                  <Line type="monotone" dataKey="count" stroke="#00FFFF" strokeWidth={3} dot={{ r: 5, fill: '#00FFFF', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        )}
-
-        {/* Main Content */}
-        <div className={`${filterOpen ? 'lg:col-span-9' : 'lg:col-span-12'}`}>
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: "Total Applications", value: "137", icon: Target, color: "primary", glow: "glow-teal" },
-              { label: "Response Rate", value: "28%", icon: TrendingUp, color: "secondary", glow: "glow-orange" },
-              { label: "Interviews", value: "34", icon: Users, color: "primary", glow: "glow-teal" },
-              { label: "Offers", value: "5", icon: Zap, color: "secondary", glow: "glow-orange" },
-            ].map((stat, index) => (
-              <Card key={index} className={`gradient-card border-border/50 shadow-elegant hover:shadow-lg transition-all duration-300 hover:${stat.glow}`}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
-                    </div>
-                    <div className={`p-3 rounded-lg bg-${stat.color}/10 border border-${stat.color}/20`}>
-                      <stat.icon className={`w-6 h-6 text-${stat.color}`} />
-                    </div>
+          {/* Status Distribution Chart */}
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Status Distribution</h2>
+            <div className="h-80 bg-gradient-to-br from-secondary/10 via-secondary/5 to-primary/10 rounded-2xl flex flex-col items-center justify-center border border-border/30 p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusCounts}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    stroke="none"
+                  >
+                    {statusCounts.map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const { name, value, color } = payload[0].payload;
+                        return (
+                          <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', minWidth: 90, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 14, height: 14, borderRadius: 4, background: color, marginRight: 8, border: '1px solid #222' }} />
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
+                              <div style={{ fontSize: 12 }}>{value} application{value === 1 ? '' : 's'}</div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                {statusCounts.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                    <span className="text-sm text-muted-foreground">{item.name}</span>
+                    <span className="text-xs text-foreground font-semibold">{item.value}</span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Applications by Platform */}
-            <Card className="gradient-card border-border/50 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground">Applications by Platform</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={platformData} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="applications" fill="#00FFFF" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            {/* Status Distribution */}
-            <Card className="gradient-card border-border/50 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground">Status Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {statusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-                <div className="flex flex-wrap gap-4 mt-4 justify-center">
-                  {statusData.map((item, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: item.color }}
-                      ></div>
-                      <span className="text-sm text-muted-foreground">{item.name}</span>
-                      <Badge variant="secondary" className="text-xs">{item.value}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Timeline Chart */}
-            <Card className="xl:col-span-2 gradient-card border-border/50 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  Application & Interview Timeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={timelineData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Area 
-                        type="monotone" 
-                        dataKey="applications" 
-                        stackId="1"
-                        stroke="#00FFFF" 
-                        fill="url(#tealGradient)" 
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="interviews" 
-                        stroke="#FF9A5C" 
-                        strokeWidth={3}
-                        dot={{ fill: "#FF9A5C", strokeWidth: 2, r: 4 }}
-                      />
-                      <defs>
-                        <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#00FFFF" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
