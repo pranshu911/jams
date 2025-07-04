@@ -229,7 +229,7 @@ export default function Analytics() {
             },
           ];
           return stats.map((stat, index) => (
-            <Card key={index} className={`gradient-card border-border/50 shadow-elegant hover:shadow-lg transition-all duration-300 hover:${stat.glow}`}>
+            <Card key={index} className={`gradient-card border-border/50 shadow-elegant hover:shadow-lg transition-all duration-300 hover:${stat.glow} transform transition-transform hover:scale-105`}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -297,7 +297,7 @@ export default function Analytics() {
           </div>
           {/* Status Distribution Chart */}
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-bold text-foreground mb-6">Status Distribution</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-8">Status Distribution</h2>
             <div className="h-80 bg-gradient-to-br from-secondary/10 via-secondary/5 to-primary/10 rounded-2xl flex flex-col items-center justify-center border border-border/30 p-4">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
