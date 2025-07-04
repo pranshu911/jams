@@ -77,10 +77,10 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col lg:flex-row">
       {/* Left Panel - Hero Content */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
-        <div className="max-w-lg space-y-8">
+      <div className="w-full flex items-center justify-center p-6 pt-12 lg:pt-0 lg:p-16">
+        <div className="max-w-lg w-full space-y-8">
           {/* Main Headline */}
           <div className="space-y-4">
             <h1 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
@@ -123,10 +123,10 @@ const Landing = () => {
       </div>
 
       {/* Right Panel - Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+      <div className="w-full flex items-center justify-center p-6 pb-12 lg:pb-0 lg:p-16">
         {/* Flip Card Container */}
         <div className="w-full max-w-md perspective-1000 flex items-center justify-center">
-          <div className={`relative w-full h-[500px] transition-transform duration-700 preserve-3d ${isSignUp ? 'rotate-y-180' : ''}`}>
+          <div className={`relative w-full h-[550px] transition-transform duration-700 preserve-3d ${isSignUp ? 'rotate-y-180' : ''}`}>
             {/* Sign In Card */}
             <Card className="absolute inset-0 w-full h-full gradient-card border-border/50 shadow-elegant backface-hidden">
               <CardHeader className="space-y-1 text-center">
