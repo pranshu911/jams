@@ -36,8 +36,25 @@ const Landing = () => {
         navigate('/');
       }
     } else {
-      // (Sign up logic can be added later)
-      console.log('Sign up not implemented yet.');
+      // Sign Up logic
+      const { name, email, password, confirmPassword } = formData;
+      if (password !== confirmPassword) {
+        alert('Passwords do not match.');
+        return;
+      }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
+      if (error) {
+        alert(error.message); // Replace with toast if desired
+      } else {
+        alert('Sign up successful! Please check your email to confirm your account. You can now log in at https://jams-nu.vercel.app/');
+        setIsSignUp(false);
+      }
     }
   };
 

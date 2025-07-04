@@ -17,6 +17,7 @@ import LoadingSpinner from "./components/ui/LoadingSpinner";
 import SupabaseTest from "./pages/SupabaseTest";
 import ArchivedApplications from "./pages/ArchivedApplications";
 import Landing from "./pages/Landing";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
 // Import AuthGuard
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -62,6 +63,7 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
+              <VercelAnalytics />
             </TooltipProvider>
           )
         )}
