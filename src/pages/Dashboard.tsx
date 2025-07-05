@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, TrendingUp, Calendar, Target, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,7 @@ const getStatusColor = (status: string) => {
 
 export default function Dashboard() {
   const { data: applications, isLoading } = useApplications();
+  const navigate = useNavigate();
 
   // Only active (non-archived) applications
   const activeApps = useMemo(() =>
@@ -177,120 +178,140 @@ export default function Dashboard() {
             </Card>
           ))
         ) : (
-          stats.map((stat) => (
-            <Card key={stat.title} className={`gradient-card border-border/50 shadow-elegant transition-all duration-300 hover:shadow-2xl hover:scale-105 ${stat.glowClass || ''}`}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">{stat.title}</p>
-                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+          stats.map((stat) => {
+            const isTotalApplications = stat.title === 'Total Applications';
+            return (
+              <Card
+                key={stat.title}
+                className={`gradient-card border-border/50 shadow-elegant transition-all duration-300 hover:shadow-2xl hover:scale-105 ${stat.glowClass || ''} ${isTotalApplications ? 'cursor-pointer' : ''}`}
+                onClick={isTotalApplications ? () => navigate('/applications') : undefined}
+                tabIndex={isTotalApplications ? 0 : undefined}
+                role={isTotalApplications ? 'button' : undefined}
+                aria-label={isTotalApplications ? 'View all applications' : undefined}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">{stat.title}</p>
+                      <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                    </div>
+                    <div className={`p-4 rounded-2xl ${stat.bgColor} backdrop-blur-sm`}>
+                      <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    </div>
                   </div>
-                  <div className={`p-4 rounded-2xl ${stat.bgColor} backdrop-blur-sm`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 gradient-card border-border/50 shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-foreground">Applications Over Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl flex items-center justify-center border border-border/30 p-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={applicationsOverTime} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#00FFFF" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="week" tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 500 }} fontSize={12} angle={-20} textAnchor="end" interval={0} height={50} />
-                  <YAxis allowDecimals={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 500 }} fontSize={12} />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const { count } = payload[0].payload;
-                        return (
-                          <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                            <div style={{ fontWeight: 600, marginBottom: 2 }}>{label}</div>
-                            <div style={{ fontSize: 12 }}>{count} application{count === 1 ? '' : 's'}</div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Area type="monotone" dataKey="count" stroke="#00FFFF" fill="url(#tealGradient)" strokeWidth={0} dot={false} activeDot={false} />
-                  <Line type="monotone" dataKey="count" stroke="#00FFFF" strokeWidth={3} dot={{ r: 5, fill: '#00FFFF', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 7 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="gradient-card border-border/50 shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-foreground">Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gradient-to-br from-secondary/10 via-secondary/5 to-primary/10 rounded-2xl flex flex-col items-center justify-center border border-border/30 p-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusCounts}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    stroke="none"
-                  >
-                    {statusCounts.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const { name, value, color } = payload[0].payload;
-                        return (
-                          <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', minWidth: 90, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 14, height: 14, borderRadius: 4, background: color, marginRight: 8, border: '1px solid #222' }} />
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
-                              <div style={{ fontSize: 12 }}>{value} application{value === 1 ? '' : 's'}</div>
+      {activeApps.length === 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-3 gradient-card border-border/50 shadow-elegant flex items-center justify-center min-h-[320px]">
+            <CardContent className="flex items-center justify-center w-full h-full text-muted-foreground text-lg font-medium">
+              No active applications to analyze yet. Add some applications to see analytics!
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 gradient-card border-border/50 shadow-elegant">
+            <CardHeader>
+              <CardTitle className="text-foreground">Applications Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl flex items-center justify-center border border-border/30 p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={applicationsOverTime} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#00FFFF" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="week" tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 500 }} fontSize={12} angle={-20} textAnchor="end" interval={0} height={50} />
+                    <YAxis allowDecimals={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 500 }} fontSize={12} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const { count } = payload[0].payload;
+                          return (
+                            <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                              <div style={{ fontWeight: 600, marginBottom: 2 }}>{label}</div>
+                              <div style={{ fontSize: 12 }}>{count} application{count === 1 ? '' : 's'}</div>
                             </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-4 mt-4 justify-center">
-                {statusCounts.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                    <span className="text-sm text-muted-foreground">{item.name}</span>
-                    <span className="text-xs text-foreground font-semibold">{item.value}</span>
-                  </div>
-                ))}
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Area type="monotone" dataKey="count" stroke="#00FFFF" fill="url(#tealGradient)" strokeWidth={0} dot={false} activeDot={false} />
+                    <Line type="monotone" dataKey="count" stroke="#00FFFF" strokeWidth={3} dot={{ r: 5, fill: '#00FFFF', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+
+          <Card className="gradient-card border-border/50 shadow-elegant">
+            <CardHeader>
+              <CardTitle className="text-foreground">Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 bg-gradient-to-br from-secondary/10 via-secondary/5 to-primary/10 rounded-2xl flex flex-col items-center justify-center border border-border/30 p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusCounts}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {statusCounts.map((entry, idx) => (
+                        <Cell key={`cell-${idx}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const { name, value, color } = payload[0].payload;
+                          return (
+                            <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', minWidth: 90, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 14, height: 14, borderRadius: 4, background: color, marginRight: 8, border: '1px solid #222' }} />
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
+                                <div style={{ fontSize: 12 }}>{value} application{value === 1 ? '' : 's'}</div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                  {statusCounts.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                      <span className="text-sm text-muted-foreground">{item.name}</span>
+                      <span className="text-xs text-foreground font-semibold">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Recent Applications */}
       <Card className="gradient-card border-border/50 shadow-elegant">
