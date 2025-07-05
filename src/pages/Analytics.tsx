@@ -133,6 +133,27 @@ export default function Analytics() {
     return data;
   }, [activeApps]);
 
+  // Job Type Distribution data for pie chart
+  const typeColors: Record<string, string> = {
+    'full-time': '#134e4a', // dark teal
+    'part-time': '#2dd4bf', // medium teal
+    'internship': '#cbd5e1', // lightest (same as before)
+  };
+  const typeLabels: Record<string, string> = {
+    'full-time': 'Full-Time',
+    'part-time': 'Part-Time',
+    'internship': 'Internship',
+  };
+  const typeOrder = ['full-time', 'part-time', 'internship'];
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = { 'full-time': 0, 'part-time': 0, 'internship': 0 };
+    activeApps.forEach(app => {
+      const type = (app.type || '').toLowerCase();
+      if (type in counts) counts[type]++;
+    });
+    return typeOrder.map(type => ({ name: typeLabels[type], value: counts[type], color: typeColors[type] }));
+  }, [activeApps]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -349,39 +370,96 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Applications by Platform and Left Chart Row */}
-      <div className="w-full flex flex-col lg:flex-row gap-6 mb-8">
-        {/* Left side placeholder for future chart */}
-        <div className="w-full lg:w-2/5 rounded-2xl border border-dashed border-border/50 bg-background/60 shadow-none p-6 flex items-center justify-center min-h-[288px] mb-6 lg:mb-0">
-          {/* TODO: Add chart here */}
-          <span className="text-muted-foreground">(Chart coming soon)</span>
+      <div className="w-full rounded-2xl border border-border/50 bg-background shadow-elegant p-6 mb-8">
+        {/* Headings row, inside the parent card */}
+        <div className="w-full flex flex-row gap-6 mb-2">
+          <div className="w-full lg:w-2/5 min-w-[180px] flex flex-col items-center lg:items-start">
+            <h2 className="text-2xl font-bold text-foreground w-full text-left py-4">Job Type Distribution</h2>
+          </div>
+          <div className="w-full lg:w-3/5 flex flex-col items-center lg:items-start">
+            <h2 className="text-2xl font-bold text-foreground text-left py-4 w-full">Applications by Platform</h2>
+          </div>
         </div>
-        {/* Applications by Platform Bar Chart - right side, 60% width */}
-        <div className="w-full lg:w-3/5 rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Applications by Platform</h2>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={platformData} layout="vertical" margin={{ left: 20, right: 40, top: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={13} />
-                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={14} width={120} />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const { name, applications } = payload[0].payload;
-                      return (
-                        <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                          <div style={{ fontWeight: 600, marginBottom: 2 }}>{name}</div>
-                          <div style={{ fontSize: 12 }}>{applications} application{applications === 1 ? '' : 's'}</div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="applications" fill="#00FFFF" radius={[0, 8, 8, 0]} barSize={18} />
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Charts row, two small gradient cards */}
+        <div className="w-full flex flex-col lg:flex-row gap-8">
+          {/* Job Type Distribution Donut Chart */}
+          <div className="w-full lg:w-2/5 rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6 flex flex-col items-center justify-center mb-8 lg:mb-0">
+            <div className="h-80 w-full flex flex-col items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <PieChart width={360} height={288}>
+                    <Pie
+                      data={typeCounts}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={110}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {typeCounts.map((entry, idx) => (
+                        <Cell key={`cell-type-${idx}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const { name, value, color } = payload[0].payload;
+                          return (
+                            <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', minWidth: 90, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 14, height: 14, borderRadius: 4, background: color, marginRight: 8, border: '1px solid #222' }} />
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
+                                <div style={{ fontSize: 12 }}>{value} application{value === 1 ? '' : 's'}</div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                  <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                    {typeCounts.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                        <span className="text-sm text-muted-foreground">{item.name}</span>
+                        <span className="text-xs text-foreground font-semibold">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          {/* Applications by Platform Bar Chart */}
+          <div className="w-full lg:w-3/5 rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6 flex flex-col items-center justify-center lg:items-start">
+            <div className="h-72 w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={platformData} layout="vertical" margin={{ left: 20, right: 40, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={13} />
+                  <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={14} width={120} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const { name, applications } = payload[0].payload;
+                        return (
+                          <div style={{ background: 'rgba(20,20,20,0.85)', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, minWidth: 90, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 2 }}>{name}</div>
+                            <div style={{ fontSize: 12 }}>{applications} application{applications === 1 ? '' : 's'}</div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="applications" fill="#00FFFF" radius={[0, 8, 8, 0]} barSize={18} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

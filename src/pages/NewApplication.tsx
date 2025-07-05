@@ -28,6 +28,9 @@ const formSchema = z.object({
   referral: z.string().optional(),
   dateApplied: z.string().min(1, 'Application date is required'),
   followUp: z.string().optional(),
+  type: z.enum(['full-time', 'part-time', 'internship']).default('full-time'),
+  isRemote: z.boolean().default(false),
+  notes: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -46,6 +49,12 @@ const statuses = [
   { value: 'interview', label: 'Interview', color: 'bg-primary' },
   { value: 'offer', label: 'Offer', color: 'bg-green-500' },
   { value: 'rejected', label: 'Rejected', color: 'bg-red-500' },
+];
+
+const employmentTypes = [
+  { value: 'full-time', label: 'Full Time' },
+  { value: 'part-time', label: 'Part Time' },
+  { value: 'internship', label: 'Internship' },
 ];
 
 export default function NewApplication() {
@@ -69,6 +78,9 @@ export default function NewApplication() {
       referral: '',
       dateApplied: new Date().toISOString().split('T')[0],
       followUp: '',
+      type: 'full-time',
+      isRemote: false,
+      notes: '',
     },
   });
 
@@ -93,8 +105,10 @@ export default function NewApplication() {
         referral: formData.referral || null,
         date_applied: formData.dateApplied,
         follow_up: formData.followUp || null,
-        notes: null,
+        notes: formData.notes || null,
         user_id: session.user.id,
+        type: formData.type,
+        is_remote: formData.isRemote,
       };
 
       const { error } = await supabase
@@ -272,7 +286,8 @@ export default function NewApplication() {
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Platform, Status, Employment Type in a single row on desktop, stacked on mobile */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="platform"
@@ -327,7 +342,51 @@ export default function NewApplication() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-foreground font-medium">Employment Type *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="bg-muted/30 border-border focus:border-primary">
+                              <SelectValue placeholder="Select employment type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-popover border-border">
+                            {employmentTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
+
+                {/* Is Remote Checkbox */}
+                <FormField
+                  control={form.control}
+                  name="isRemote"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={e => field.onChange(e.target.checked)}
+                          className="w-4 h-4 text-primary bg-muted border-border rounded focus:ring-primary focus:ring-2"
+                        />
+                      </FormControl>
+                      <FormLabel className="text-foreground font-medium">Is Remote?</FormLabel>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -450,30 +509,60 @@ export default function NewApplication() {
                     )}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Notes Textarea */}
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-foreground font-medium">Notes</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Add any additional notes or comments..."
+                            className="bg-muted/30 border-border focus:border-primary focus:ring-primary/20 min-h-[80px] resize-y"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </CardContent>
             </Card>
 
             {/* Action Buttons */}
             <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border/50 p-4 -mx-6">
-              <div className="max-w-4xl mx-auto flex items-center justify-between">
-                <Button 
-                  type="submit" 
-                  className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Save Application
-                    </>
-                  )}
-                </Button>
-                
+              <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                  <Button 
+                    type="submit" 
+                    className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-black"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Save Application
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleReset}
+                    className="w-full md:w-auto"
+                  >
+                    Reset Form
+                  </Button>
+                </div>
                 <div className="flex items-center gap-3">
                   <Button
                     type="button"

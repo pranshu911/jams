@@ -19,6 +19,7 @@ export interface Application {
   created_at: string;
   updated_at: string;
   is_archive?: boolean;
+  type?: string;
 }
 
 export function useApplications() {

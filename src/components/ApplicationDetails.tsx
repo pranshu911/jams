@@ -585,7 +585,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                       <h4 className="text-md font-medium text-secondary mb-3">My Notes</h4>
                       <div className="bg-muted/20 rounded-xl p-4 border border-border/20">
                         <p className="text-muted-foreground leading-relaxed">
-                          {application.notes || "Great company culture based on Glassdoor reviews. The tech stack aligns well with my experience. Need to follow up next week if no response."}
+                          {application.notes?.trim() ? application.notes : "No notes added."}
                         </p>
                       </div>
                     </div>
