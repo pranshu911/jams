@@ -50,7 +50,10 @@ interface Application {
   description?: string;
   notes?: string;
   followUp?: string;
+  follow_up?: string;
   is_archive: boolean;
+  type?: string;
+  is_remote?: boolean;
 }
 
 interface ApplicationDetailsProps {
@@ -96,7 +99,9 @@ const formSchema = z.object({
   hrContact: z.string().email('Please enter a valid email').optional().or(z.literal('')),
   referral: z.string().optional(),
   dateApplied: z.string().min(1, 'Application date is required'),
-  followUp: z.string().optional(),
+  follow_up: z.string().optional(),
+  type: z.enum(['full-time', 'part-time', 'internship']).default('full-time'),
+  isRemote: z.boolean().default(false),
 });
 
 const platforms = [
@@ -144,7 +149,9 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
     hrContact: application.hrContact || '',
     referral: application.referral || '',
     dateApplied: application.dateApplied || '',
-    followUp: application.followUp || '',
+    follow_up: application.follow_up || '',
+    type: application.type || 'full-time',
+    isRemote: application.is_remote ?? false,
   }), [application]);
 
   const form = useForm({
@@ -168,7 +175,9 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
         hr_contact: formData.hrContact || null,
         referral: formData.referral || null,
         date_applied: formData.dateApplied,
-        follow_up: formData.followUp || null,
+        follow_up: formData.follow_up || null,
+        type: formData.type,
+        is_remote: formData.isRemote,
       };
       const { error } = await supabase
         .from('job_applications')
@@ -431,6 +440,47 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                           )}
                         />
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                        <FormField
+                          control={form.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-foreground font-medium">Employment Type *</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select employment type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="full-time">Full Time</SelectItem>
+                                  <SelectItem value="part-time">Part Time</SelectItem>
+                                  <SelectItem value="internship">Internship</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="isRemote"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={e => field.onChange(e.target.checked)}
+                                  className="w-4 h-4 text-primary bg-muted border-border rounded focus:ring-primary focus:ring-2"
+                                />
+                              </FormControl>
+                              <FormLabel className="text-foreground font-medium">Is Remote?</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                   <Card className="gradient-card shadow-elegant border-border/50">
@@ -486,10 +536,10 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                         />
                         <FormField
                           control={form.control}
-                          name="followUp"
+                          name="follow_up"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-foreground font-medium">Follow-up Reminder</FormLabel>
+                              <FormLabel className="text-foreground font-medium">Follow-up Date</FormLabel>
                               <FormControl>
                                 <Input type="date" {...field} />
                               </FormControl>
@@ -504,7 +554,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                     <Button type="button" variant="ghost" onClick={() => setIsEditing(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={loading} className="bg-primary text-white">
+                    <Button type="submit" disabled={loading} className="bg-primary text-black">
                       {loading ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
@@ -518,6 +568,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                     Overview
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left column */}
                     <div className="space-y-4">
                       <div className="flex items-center space-x-3">
                         <ExternalLink className="w-4 h-4 text-primary" />
@@ -540,7 +591,17 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                           <p className="text-foreground font-medium">{application.dateApplied}</p>
                         </div>
                       </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="w-4 h-4 text-primary flex items-center justify-center">
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                        </span>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Job Type</p>
+                          <p className="text-foreground font-medium">{application.type ? (application.type.charAt(0).toUpperCase() + application.type.slice(1).replace('-', ' ')) : 'Not specified'}</p>
+                        </div>
+                      </div>
                     </div>
+                    {/* Right column */}
                     <div className="space-y-4">
                       <div className="flex items-center space-x-3">
                         <DollarSign className="w-4 h-4 text-secondary" />
@@ -561,6 +622,15 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                         <div>
                           <p className="text-sm text-muted-foreground">HR Contact</p>
                           <p className="text-foreground font-medium">{application.hrContact || "Not available"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="w-4 h-4 text-secondary flex items-center justify-center">
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M17 8.5V7a4 4 0 0 0-8 0v1.5M5 10h14l-1.5 9h-11L5 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </span>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Remote</p>
+                          <p className="text-foreground font-medium">{application.is_remote ? 'Yes' : 'No'}</p>
                         </div>
                       </div>
                     </div>
@@ -589,31 +659,14 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                         </p>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="gradient-card border border-border/30 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-secondary/30">
-                    Timeline & Activity
-                  </h3>
-                  <div className="space-y-6">
-                    {timelineEvents.map((event, index) => (
-                      <div key={index} className="flex items-start space-x-4">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-3 h-3 rounded-full ${event.type === 'milestone' ? 'bg-primary glow-teal' : 'bg-secondary glow-orange'}`} />
-                          {index < timelineEvents.length - 1 && (
-                            <div className="w-px h-8 bg-gradient-to-b from-border/50 to-transparent mt-2" />
-                          )}
-                        </div>
-                        <div className="flex-1 pb-4">
-                          <div className="bg-muted/20 rounded-xl p-4 border border-border/20">
-                            <p className="text-foreground font-medium">{event.event}</p>
-                            <p className="text-sm text-muted-foreground mt-1">{event.date}</p>
-                          </div>
-                        </div>
+                    <div>
+                      <h4 className="text-md font-medium text-secondary mb-3">Follow-up Date</h4>
+                      <div className="bg-muted/20 rounded-xl p-4 border border-border/20">
+                        <p className="text-muted-foreground leading-relaxed">
+                          {application.follow_up ? application.follow_up : "No follow-up date set."}
+                        </p>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
               </>
@@ -635,7 +688,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                   ? 'Are you sure you want to delete this application? This action cannot be undone.'
                   : application.is_archive
                     ? 'Are you sure you want to un-archive this application?'
-                    : 'Are you sure you want to archive this application? This action cannot be undone.'}
+                    : 'Are you sure you want to archive this application?'}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

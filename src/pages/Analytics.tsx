@@ -7,7 +7,7 @@ import React, { useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area,
-  PieChart, Pie, Cell, BarChart, Bar
+  PieChart, Pie, Cell, BarChart, Bar, ScatterChart, Scatter
 } from 'recharts';
 import { TripleToggle } from '@/components/ui/triple-toggle';
 import { useNavigate } from 'react-router-dom';
@@ -483,6 +483,150 @@ export default function Analytics() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Analytics Section: Heat Map, Bubble Chart, Table */}
+      {activeApps.length === 0 ? null : (
+        <div className="w-full rounded-2xl border border-border/50 bg-background shadow-elegant p-8 mb-8">
+          {/* Titles Row */}
+          <div className="w-full flex flex-row gap-12 mb-2 justify-between">
+            <div className="flex-1 min-w-[120px] flex flex-col items-start">
+              <h2 className="text-xl font-bold text-foreground w-full text-left">Top Locations</h2>
+            </div>
+            <div className="flex-1 min-w-[120px] flex flex-col items-start ml-8 mr-8">
+              <h2 className="text-xl font-bold text-foreground w-full text-left">Top Companies</h2>
+            </div>
+            <div className="flex-1 min-w-[120px] flex flex-col items-start">
+              <h2 className="text-xl font-bold text-foreground w-full text-left">Top Job Titles</h2>
+            </div>
+          </div>
+          <div className="w-full flex flex-col lg:flex-row gap-12 justify-between">
+            {/* Heat Map for Top Locations */}
+            <div className="flex-1 flex flex-col items-start justify-center">
+              {(() => {
+                // Aggregate top 6 locations
+                const locationCounts: Record<string, number> = {};
+                activeApps.forEach(app => {
+                  const loc = (app.location || 'Unknown').trim();
+                  locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+                });
+                const sorted = Object.entries(locationCounts).sort((a, b) => b[1] - a[1]);
+                const topLocations = sorted.slice(0, 6);
+                // 5 visually distinct teal gradients (light to dark)
+                const gradients = [
+                  '#e0f7fa', // 1: lightest (cyan-50)
+                  '#80deea', // 2: light (cyan-200)
+                  '#26c6da', // 3: medium (cyan-400)
+                  '#00838f', // 4: dark (cyan-800)
+                  '#134e4a', // 5+: darkest (teal-900)
+                ];
+                function getCellColor(count: number) {
+                  if (count >= 5) return gradients[4];
+                  if (count === 4) return gradients[3];
+                  if (count === 3) return gradients[2];
+                  if (count === 2) return gradients[1];
+                  return gradients[0];
+                }
+                // Fill up to 6 cells for 2x3 grid
+                const gridCells = Array.from({ length: 6 }, (_, i) => topLocations[i] || [null, null]);
+                return (
+                  <div className="w-full flex flex-col items-start">
+                    <div className="grid grid-cols-3 grid-rows-2 gap-2 w-full max-w-[420px]">
+                      {gridCells.map(([loc, count], idx) => {
+                        // Only show first part before comma (city)
+                        const city = loc ? String(loc).split(',')[0].trim() : '';
+                        return (
+                          <div
+                            key={loc || idx}
+                            className={`flex flex-col items-center justify-end rounded-lg shadow-sm border border-border/40 p-2 min-h-[70px] min-w-[90px] w-full transition-all ${loc ? 'hover:scale-105 cursor-pointer' : 'opacity-40'} bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10`}
+                            style={{ background: loc ? getCellColor(count as number) : '#f3f4f6' }}
+                            title={loc ? `${loc}: ${count} application${count === 1 ? '' : 's'}` : ''}
+                          >
+                            <span className="text-xs font-semibold text-foreground mb-1 truncate w-full text-center">{city}</span>
+                            <span className="text-lg font-bold text-foreground">{loc ? count : ''}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-row gap-3 mt-3">
+                      <div className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-[#e0f7fa] border border-border/30 inline-block"></span><span className="text-xs text-muted-foreground">1</span></div>
+                      <div className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-[#80deea] border border-border/30 inline-block"></span><span className="text-xs text-muted-foreground">2</span></div>
+                      <div className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-[#26c6da] border border-border/30 inline-block"></span><span className="text-xs text-muted-foreground">3</span></div>
+                      <div className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-[#00838f] border border-border/30 inline-block"></span><span className="text-xs text-muted-foreground">4</span></div>
+                      <div className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-[#134e4a] border border-border/30 inline-block"></span><span className="text-xs text-muted-foreground">5+</span></div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Table for Top 5 Companies */}
+            <div className="flex-1 flex flex-col items-start justify-center ml-8 mr-8">
+              {(() => {
+                // Aggregate top 5 companies
+                const companyCounts: Record<string, number> = {};
+                activeApps.forEach(app => {
+                  const company = (app.company || 'Unknown').trim();
+                  companyCounts[company] = (companyCounts[company] || 0) + 1;
+                });
+                const sorted = Object.entries(companyCounts).sort((a, b) => b[1] - a[1]);
+                const topCompanies = sorted.slice(0, 5);
+                return (
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-[180px] w-full text-sm border-separate border-spacing-y-2">
+                      <thead>
+                        <tr>
+                          <th className="text-left text-muted-foreground font-semibold">Company</th>
+                          <th className="text-right text-muted-foreground font-semibold">Applications</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topCompanies.map(([company, count]) => (
+                          <tr key={company} className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
+                            <td className="py-2 px-3 rounded-l-lg text-foreground font-medium">{company}</td>
+                            <td className="py-2 px-3 rounded-r-lg text-right text-foreground font-bold">{count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Table for Top 5 Job Titles */}
+            <div className="flex-1 flex flex-col items-start justify-center">
+              {(() => {
+                // Aggregate top 5 job titles
+                const titleCounts: Record<string, number> = {};
+                activeApps.forEach(app => {
+                  const title = (app.title || 'Unknown').trim();
+                  titleCounts[title] = (titleCounts[title] || 0) + 1;
+                });
+                const sorted = Object.entries(titleCounts).sort((a, b) => b[1] - a[1]);
+                const topTitles = sorted.slice(0, 5);
+                return (
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-[180px] w-full text-sm border-separate border-spacing-y-2">
+                      <thead>
+                        <tr>
+                          <th className="text-left text-muted-foreground font-semibold">Job Title</th>
+                          <th className="text-right text-muted-foreground font-semibold">Applications</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topTitles.map(([title, count]) => (
+                          <tr key={title} className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
+                            <td className="py-2 px-3 rounded-l-lg text-foreground font-medium">{title}</td>
+                            <td className="py-2 px-3 rounded-r-lg text-right text-foreground font-bold">{count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

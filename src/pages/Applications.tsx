@@ -33,6 +33,9 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
 
 // Helper function to map database fields to the expected format
 const mapApplication = (app: any) => ({
@@ -73,11 +76,93 @@ export default function Applications() {
   const [dialogType, setDialogType] = useState<'delete'|'archive'|'interview'|'rejected'|null>(null);
   const [pendingApp, setPendingApp] = useState<any>(null);
   const [searchValue, setSearchValue] = useState('');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [platformFilters, setPlatformFilters] = useState<string[]>([]);
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [filteredApplications, setFilteredApplications] = useState(applications.filter(app => !app.is_archive));
+  const [dateFilter, setDateFilter] = useState<'today' | '7days' | '30days' | 'custom' | null>(null);
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
+  // Get all unique platforms from applications
+  const allPlatforms = Array.from(new Set(applications.map(app => app.platform).filter(Boolean)));
+
+  // Debounced search/filter logic
   useEffect(() => {
-    setFilteredApplications(applications.filter(app => !app.is_archive));
-  }, [applications]);
+    const handler = setTimeout(() => {
+      let filtered = applications.filter(app => !app.is_archive);
+      // Status filter
+      if (statusFilters.length > 0) {
+        filtered = filtered.filter(app => statusFilters.includes(app.status));
+      }
+      // Platform filter
+      if (platformFilters.length > 0) {
+        filtered = filtered.filter(app => platformFilters.includes(app.platform));
+      }
+      // Date filter
+      if (dateFilter) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (dateFilter === 'today') {
+          filtered = filtered.filter(app => {
+            const applied = new Date(app.date_applied);
+            applied.setHours(0, 0, 0, 0);
+            return applied.getTime() === today.getTime();
+          });
+        } else if (dateFilter === '7days') {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(today.getDate() - 6); // includes today
+          filtered = filtered.filter(app => {
+            const applied = new Date(app.date_applied);
+            applied.setHours(0, 0, 0, 0);
+            return applied >= weekAgo && applied <= today;
+          });
+        } else if (dateFilter === '30days') {
+          const monthAgo = new Date(today);
+          monthAgo.setDate(today.getDate() - 29); // includes today
+          filtered = filtered.filter(app => {
+            const applied = new Date(app.date_applied);
+            applied.setHours(0, 0, 0, 0);
+            return applied >= monthAgo && applied <= today;
+          });
+        } else if (dateFilter === 'custom' && customDateRange.from && customDateRange.to) {
+          const from = new Date(customDateRange.from);
+          from.setHours(0, 0, 0, 0);
+          const to = new Date(customDateRange.to);
+          to.setHours(0, 0, 0, 0);
+          filtered = filtered.filter(app => {
+            const applied = new Date(app.date_applied);
+            applied.setHours(0, 0, 0, 0);
+            return applied >= from && applied <= to;
+          });
+        }
+      }
+      // Search
+      if (searchValue.trim()) {
+        const value = searchValue.toLowerCase();
+        filtered = filtered.filter(app =>
+          app.title.toLowerCase().includes(value) ||
+          app.company.toLowerCase().includes(value) ||
+          (app.location && app.location.toLowerCase().includes(value))
+        );
+      }
+      setFilteredApplications(filtered);
+      setPage(1); // Reset to first page on filter/search change
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [applications, searchValue, statusFilters, platformFilters, dateFilter, customDateRange]);
+
+  // Pagination logic
+  const total = filteredApplications.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const startIdx = (page - 1) * PAGE_SIZE;
+  const endIdx = Math.min(startIdx + PAGE_SIZE, total);
+  const paginatedApplications = filteredApplications.slice(startIdx, endIdx);
+
+  // Filter popover UI
+  const statusOptions = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected'];
 
   // Show error toast if there's an error
   React.useEffect(() => {
@@ -242,20 +327,6 @@ export default function Applications() {
     }
   };
 
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const value = searchValue.toLowerCase();
-      const filtered = applications.filter(app =>
-        !app.is_archive && (
-          app.title.toLowerCase().includes(value) ||
-          app.company.toLowerCase().includes(value) ||
-          (app.location && app.location.toLowerCase().includes(value))
-        )
-      );
-      setFilteredApplications(filtered);
-    }
-  };
-
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
@@ -279,8 +350,8 @@ export default function Applications() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex flex-col gap-1 mb-4">
+      {/* Search Bar + Filter Button + Date Filter */}
+      <div className="flex flex-row items-center gap-2 mb-4">
         <input
           type="text"
           placeholder="Search by title, company, or location"
@@ -288,14 +359,174 @@ export default function Applications() {
           style={{ width: '30%' }}
           value={searchValue}
           onChange={e => setSearchValue(e.target.value)}
-          onKeyDown={handleSearch}
         />
-        {searchValue && (
-          <span className="text-sm text-muted-foreground mt-1">
-            Showing results for <span className="font-semibold text-primary">"{searchValue}"</span>
-          </span>
-        )}
+        <Popover open={filterPopoverOpen} onOpenChange={setFilterPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="ml-2 flex items-center gap-2 border-border/60">
+              <Filter className="w-4 h-4" />
+              Filters
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-[420px] p-6 rounded-2xl shadow-elegant border border-border/60 bg-background">
+            <div className="flex flex-row gap-8">
+              {/* Status Filter */}
+              <div>
+                <div className="font-semibold text-base mb-3 text-foreground">Filter by Status</div>
+                {statusOptions.map(status => (
+                  <div key={status} className="flex items-center gap-3 mb-2">
+                    <Checkbox
+                      checked={statusFilters.includes(status)}
+                      onCheckedChange={checked => {
+                        setStatusFilters(checked
+                          ? [...statusFilters, status]
+                          : statusFilters.filter(s => s !== status));
+                      }}
+                      id={`status-${status}`}
+                      className="rounded-md w-5 h-5 border-2 border-border"
+                    />
+                    <label htmlFor={`status-${status}`} className="text-base text-foreground cursor-pointer">{status}</label>
+                  </div>
+                ))}
+              </div>
+              {/* Platform Filter */}
+              <div>
+                <div className="font-semibold text-base mb-3 text-foreground">Filter by Platform</div>
+                {allPlatforms.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No platforms</div>
+                ) : allPlatforms.map(platform => (
+                  <div key={platform} className="flex items-center gap-3 mb-2">
+                    <Checkbox
+                      checked={platformFilters.includes(platform)}
+                      onCheckedChange={checked => {
+                        setPlatformFilters(checked
+                          ? [...platformFilters, platform]
+                          : platformFilters.filter(p => p !== platform));
+                      }}
+                      id={`platform-${platform}`}
+                      className="rounded-md w-5 h-5 border-2 border-border"
+                    />
+                    <label htmlFor={`platform-${platform}`} className="text-base text-foreground cursor-pointer">{platform}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button
+                variant="outline"
+                className="border-border/60 text-muted-foreground hover:text-primary hover:border-primary"
+                onClick={() => { setStatusFilters([]); setPlatformFilters([]); }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+        {/* Date Filter Dropdown */}
+        <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="ml-2 flex items-center gap-2 border-border/60">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              Date
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-[340px] p-5 rounded-2xl shadow-elegant border border-border/60 bg-background">
+            <div className="flex flex-col gap-3">
+              {[
+                { key: 'today', label: 'Today' },
+                { key: '7days', label: 'Past 7 days' },
+                { key: '30days', label: 'Past 30 days' },
+                { key: 'custom', label: 'Custom range' },
+              ].map(opt => (
+                <label key={opt.key} className="flex items-center gap-3 cursor-pointer text-base">
+                  <span className={
+                    cn(
+                      "inline-flex items-center justify-center w-5 h-5 border-2 border-border bg-muted/30 transition-colors",
+                      dateFilter === opt.key ? "bg-primary border-primary" : "bg-muted/30 border-border",
+                      "rounded-md"
+                    )
+                  }>
+                    <input
+                      type="radio"
+                      name="date-filter"
+                      value={opt.key}
+                      checked={dateFilter === opt.key}
+                      onChange={() => setDateFilter(opt.key as any)}
+                      className="appearance-none w-4 h-4 m-0 p-0 cursor-pointer"
+                      style={{ outline: 'none' }}
+                    />
+                    {dateFilter === opt.key && (
+                      <span className="block w-3 h-3 bg-primary rounded-sm" />
+                    )}
+                  </span>
+                  {opt.label}
+                </label>
+              ))}
+              {dateFilter === 'custom' && (
+                <div className="mt-2">
+                  <Calendar
+                    mode="range"
+                    selected={customDateRange}
+                    onSelect={range => setCustomDateRange(range as any)}
+                    numberOfMonths={1}
+                  />
+                  <div className="flex justify-between mt-2 text-sm">
+                    <span>From: {customDateRange.from ? customDateRange.from.toLocaleDateString() : '--'}</span>
+                    <span>To: {customDateRange.to ? customDateRange.to.toLocaleDateString() : '--'}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end mt-4">
+                <Button
+                  variant="outline"
+                  className="border-border/60 text-muted-foreground hover:text-primary hover:border-primary"
+                  onClick={() => { setDateFilter(null); setCustomDateRange({ from: undefined, to: undefined }); }}
+                >
+                  Clear Date
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Search/Filter Info */}
+      {(searchValue || statusFilters.length > 0 || platformFilters.length > 0 || dateFilter) && (
+        <span className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-2 items-center">
+          {searchValue && (
+            <>
+              Showing results for <span className="font-semibold text-primary">"{searchValue}"</span>
+            </>
+          )}
+          {statusFilters.length > 0 && (
+            <>
+              <span className="text-muted-foreground">|</span> Status:
+              {statusFilters.map(s => (
+                <span key={s} className="ml-1 font-semibold text-primary">{s}</span>
+              ))}
+            </>
+          )}
+          {platformFilters.length > 0 && (
+            <>
+              <span className="text-muted-foreground">|</span> Platform:
+              {platformFilters.map(p => (
+                <span key={p} className="ml-1 font-semibold text-primary">{p}</span>
+              ))}
+            </>
+          )}
+          {dateFilter && (
+            <>
+              <span className="text-muted-foreground">|</span> Date:
+              <span className="ml-1 font-semibold text-primary">
+                {dateFilter === 'today' && 'Today'}
+                {dateFilter === '7days' && 'Past 7 days'}
+                {dateFilter === '30days' && 'Past 30 days'}
+                {dateFilter === 'custom' && customDateRange.from && customDateRange.to && `${customDateRange.from.toLocaleDateString()} - ${customDateRange.to.toLocaleDateString()}`}
+                {dateFilter === 'custom' && (!customDateRange.from || !customDateRange.to) && 'Custom range'}
+              </span>
+            </>
+          )}
+        </span>
+      )}
 
       {/* Bulk Actions Bar */}
       {selectedApplications.length > 0 && (
@@ -342,6 +573,7 @@ export default function Applications() {
                       className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                   </TableHead>
+                  <TableHead className="w-16 font-semibold text-sm text-blue-100/80 uppercase tracking-wider text-center">S.No.</TableHead>
                   <TableHead className="font-semibold text-sm text-blue-100/80 uppercase tracking-wider">
                     Job Title
                   </TableHead>
@@ -364,7 +596,7 @@ export default function Applications() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredApplications.map((app) => (
+                {paginatedApplications.map((app, idx) => (
                   <TableRow 
                     key={app.id} 
                     className="border-b border-border/30 hover:bg-accent/30 transition-all duration-200 cursor-pointer"
@@ -376,6 +608,7 @@ export default function Applications() {
                         className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                     </TableCell>
+                    <TableCell className="text-center text-muted-foreground font-semibold">{startIdx + idx + 1}</TableCell>
                     <TableCell className="font-medium text-primary hover:text-primary/80 transition-colors">
                       {app.title}
                     </TableCell>
@@ -436,6 +669,36 @@ export default function Applications() {
               </TableBody>
             </Table>
           </div>
+          {/* Pagination Footer */}
+          {total > PAGE_SIZE && (
+            <div className="flex justify-end items-center mt-2">
+              <span className="text-sm text-muted-foreground mr-4">
+                Showing {startIdx + 1}-{endIdx} of {total} applications
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full mr-1"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                aria-label="Previous page"
+              >
+                <span className="sr-only">Previous</span>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                aria-label="Next page"
+              >
+                <span className="sr-only">Next</span>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </Button>
+            </div>
+          )}
 
           {/* Application Details Drawer */}
           {selectedApplication && (
