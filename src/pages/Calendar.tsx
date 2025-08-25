@@ -50,7 +50,7 @@ export default function Calendar() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Calendar</h1>
-          <p className="text-muted-foreground">Track your interviews and important dates</p>
+          <p className="text-muted-foreground">NOTE: This page is a work in progress. The calendar below is a mock-up and is not functional as of now.</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:glow-teal">
           <Plus className="w-4 h-4 mr-2" />
