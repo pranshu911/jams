@@ -328,14 +328,14 @@ export default function Applications() {
   };
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="flex flex-col space-y-6 w-full p-4 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Applications</h1>
           <p className="text-muted-foreground mt-1">Track and manage your job applications</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-row gap-2">
           <Link to="/applications/new">
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground glow-teal">
               <Plus className="h-4 w-4 mr-2" />
@@ -344,6 +344,7 @@ export default function Applications() {
           </Link>
           <Link to="/archived-applications">
             <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+              <Archive className="h-4 w-4 mr-2" />
               View Archived Applications
             </Button>
           </Link>
@@ -351,142 +352,143 @@ export default function Applications() {
       </div>
 
       {/* Search Bar + Filter Button + Date Filter */}
-      <div className="flex flex-row items-center gap-2 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
         <input
           type="text"
           placeholder="Search by title, company, or location"
-          className="px-4 py-2 border border-border rounded-lg bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-          style={{ width: '30%' }}
+          className="px-4 py-2 border border-border rounded-lg bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition w-full md:flex-grow"
           value={searchValue}
           onChange={e => setSearchValue(e.target.value)}
         />
-        <Popover open={filterPopoverOpen} onOpenChange={setFilterPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="ml-2 flex items-center gap-2 border-border/60">
-              <Filter className="w-4 h-4" />
-              Filters
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-[420px] p-6 rounded-2xl shadow-elegant border border-border/60 bg-background">
-            <div className="flex flex-row gap-8">
-              {/* Status Filter */}
-              <div>
-                <div className="font-semibold text-base mb-3 text-foreground">Filter by Status</div>
-                {statusOptions.map(status => (
-                  <div key={status} className="flex items-center gap-3 mb-2">
-                    <Checkbox
-                      checked={statusFilters.includes(status)}
-                      onCheckedChange={checked => {
-                        setStatusFilters(checked
-                          ? [...statusFilters, status]
-                          : statusFilters.filter(s => s !== status));
-                      }}
-                      id={`status-${status}`}
-                      className="rounded-md w-5 h-5 border-2 border-border"
-                    />
-                    <label htmlFor={`status-${status}`} className="text-base text-foreground cursor-pointer">{status}</label>
-                  </div>
-                ))}
-              </div>
-              {/* Platform Filter */}
-              <div>
-                <div className="font-semibold text-base mb-3 text-foreground">Filter by Platform</div>
-                {allPlatforms.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No platforms</div>
-                ) : allPlatforms.map(platform => (
-                  <div key={platform} className="flex items-center gap-3 mb-2">
-                    <Checkbox
-                      checked={platformFilters.includes(platform)}
-                      onCheckedChange={checked => {
-                        setPlatformFilters(checked
-                          ? [...platformFilters, platform]
-                          : platformFilters.filter(p => p !== platform));
-                      }}
-                      id={`platform-${platform}`}
-                      className="rounded-md w-5 h-5 border-2 border-border"
-                    />
-                    <label htmlFor={`platform-${platform}`} className="text-base text-foreground cursor-pointer">{platform}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end mt-6">
-              <Button
-                variant="outline"
-                className="border-border/60 text-muted-foreground hover:text-primary hover:border-primary"
-                onClick={() => { setStatusFilters([]); setPlatformFilters([]); }}
-              >
-                Clear Filters
+        <div className="flex flex-row gap-2 md:flex-shrink-0">
+          <Popover open={filterPopoverOpen} onOpenChange={setFilterPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 border-border/60">
+                <Filter className="w-4 h-4" />
+                Filters
               </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-        {/* Date Filter Dropdown */}
-        <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="ml-2 flex items-center gap-2 border-border/60">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-              Date
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-[340px] p-5 rounded-2xl shadow-elegant border border-border/60 bg-background">
-            <div className="flex flex-col gap-3">
-              {[
-                { key: 'today', label: 'Today' },
-                { key: '7days', label: 'Past 7 days' },
-                { key: '30days', label: 'Past 30 days' },
-                { key: 'custom', label: 'Custom range' },
-              ].map(opt => (
-                <label key={opt.key} className="flex items-center gap-3 cursor-pointer text-base">
-                  <span className={
-                    cn(
-                      "inline-flex items-center justify-center w-5 h-5 border-2 border-border bg-muted/30 transition-colors",
-                      dateFilter === opt.key ? "bg-primary border-primary" : "bg-muted/30 border-border",
-                      "rounded-md"
-                    )
-                  }>
-                    <input
-                      type="radio"
-                      name="date-filter"
-                      value={opt.key}
-                      checked={dateFilter === opt.key}
-                      onChange={() => setDateFilter(opt.key as any)}
-                      className="appearance-none w-4 h-4 m-0 p-0 cursor-pointer"
-                      style={{ outline: 'none' }}
-                    />
-                    {dateFilter === opt.key && (
-                      <span className="block w-3 h-3 bg-primary rounded-sm" />
-                    )}
-                  </span>
-                  {opt.label}
-                </label>
-              ))}
-              {dateFilter === 'custom' && (
-                <div className="mt-2">
-                  <Calendar
-                    mode="range"
-                    selected={customDateRange}
-                    onSelect={range => setCustomDateRange(range as any)}
-                    numberOfMonths={1}
-                  />
-                  <div className="flex justify-between mt-2 text-sm">
-                    <span>From: {customDateRange.from ? customDateRange.from.toLocaleDateString() : '--'}</span>
-                    <span>To: {customDateRange.to ? customDateRange.to.toLocaleDateString() : '--'}</span>
-                  </div>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[420px] p-6 rounded-2xl shadow-elegant border border-border/60 bg-background">
+              <div className="flex flex-row gap-8">
+                {/* Status Filter */}
+                <div>
+                  <div className="font-semibold text-base mb-3 text-foreground">Filter by Status</div>
+                  {statusOptions.map(status => (
+                    <div key={status} className="flex items-center gap-3 mb-2">
+                      <Checkbox
+                        checked={statusFilters.includes(status)}
+                        onCheckedChange={checked => {
+                          setStatusFilters(checked
+                            ? [...statusFilters, status]
+                            : statusFilters.filter(s => s !== status));
+                        }}
+                        id={`status-${status}`}
+                        className="rounded-md w-5 h-5 border-2 border-border"
+                      />
+                      <label htmlFor={`status-${status}`} className="text-base text-foreground cursor-pointer">{status}</label>
+                    </div>
+                  ))}
                 </div>
-              )}
-              <div className="flex justify-end mt-4">
+                {/* Platform Filter */}
+                <div>
+                  <div className="font-semibold text-base mb-3 text-foreground">Filter by Platform</div>
+                  {allPlatforms.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No platforms</div>
+                  ) : allPlatforms.map(platform => (
+                    <div key={platform} className="flex items-center gap-3 mb-2">
+                      <Checkbox
+                        checked={platformFilters.includes(platform)}
+                        onCheckedChange={checked => {
+                          setPlatformFilters(checked
+                            ? [...platformFilters, platform]
+                            : platformFilters.filter(p => p !== platform));
+                        }}
+                        id={`platform-${platform}`}
+                        className="rounded-md w-5 h-5 border-2 border-border"
+                      />
+                      <label htmlFor={`platform-${platform}`} className="text-base text-foreground cursor-pointer">{platform}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end mt-6">
                 <Button
                   variant="outline"
                   className="border-border/60 text-muted-foreground hover:text-primary hover:border-primary"
-                  onClick={() => { setDateFilter(null); setCustomDateRange({ from: undefined, to: undefined }); }}
+                  onClick={() => { setStatusFilters([]); setPlatformFilters([]); }}
                 >
-                  Clear Date
+                  Clear Filters
                 </Button>
               </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+          {/* Date Filter Dropdown */}
+          <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 border-border/60">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Date
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[340px] p-5 rounded-2xl shadow-elegant border border-border/60 bg-background">
+              <div className="flex flex-col gap-3">
+                {[
+                  { key: 'today', label: 'Today' },
+                  { key: '7days', label: 'Past 7 days' },
+                  { key: '30days', label: 'Past 30 days' },
+                  { key: 'custom', label: 'Custom range' },
+                ].map(opt => (
+                  <label key={opt.key} className="flex items-center gap-3 cursor-pointer text-base">
+                    <span className={
+                      cn(
+                        "inline-flex items-center justify-center w-5 h-5 border-2 border-border bg-muted/30 transition-colors",
+                        dateFilter === opt.key ? "bg-primary border-primary" : "bg-muted/30 border-border",
+                        "rounded-md"
+                      )
+                    }>
+                      <input
+                        type="radio"
+                        name="date-filter"
+                        value={opt.key}
+                        checked={dateFilter === opt.key}
+                        onChange={() => setDateFilter(opt.key as any)}
+                        className="appearance-none w-4 h-4 m-0 p-0 cursor-pointer"
+                        style={{ outline: 'none' }}
+                      />
+                      {dateFilter === opt.key && (
+                        <span className="block w-3 h-3 bg-primary rounded-sm" />
+                      )}
+                    </span>
+                    {opt.label}
+                  </label>
+                ))}
+                {dateFilter === 'custom' && (
+                  <div className="mt-2">
+                    <Calendar
+                      mode="range"
+                      selected={customDateRange}
+                      onSelect={range => setCustomDateRange(range as any)}
+                      numberOfMonths={1}
+                    />
+                    <div className="flex justify-between mt-2 text-sm">
+                      <span>From: {customDateRange.from ? customDateRange.from.toLocaleDateString() : '--'}</span>
+                      <span>To: {customDateRange.to ? customDateRange.to.toLocaleDateString() : '--'}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end mt-4">
+                  <Button
+                    variant="outline"
+                    className="border-border/60 text-muted-foreground hover:text-primary hover:border-primary"
+                    onClick={() => { setDateFilter(null); setCustomDateRange({ from: undefined, to: undefined }); }}
+                  >
+                    Clear Date
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Search/Filter Info */}

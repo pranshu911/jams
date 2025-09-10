@@ -12,14 +12,18 @@ export interface Application {
   platform: string;
   last_updated: string;
   location?: string;
-  ctc?: string;
+  salary?: number;
   referral?: string;
   hr_contact?: string;
   user_id: string;
   created_at: string;
   updated_at: string;
-  is_archive?: boolean;
+  is_archive: boolean;
   type?: string;
+  is_remote?: boolean;
+  notes?: string;
+  description?: string;
+  follow_up?: string;
 }
 
 export function useApplications() {

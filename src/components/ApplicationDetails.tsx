@@ -39,17 +39,16 @@ interface Application {
   id: number;
   title: string;
   company: string;
-  dateApplied: string;
+  date_applied: string;
   status: string;
   platform: string;
-  lastUpdated: string;
+  last_updated: string;
   location?: string;
-  salary?: string;
+  salary?: number;
   referral?: string;
-  hrContact?: string;
+  hr_contact?: string;
   description?: string;
   notes?: string;
-  followUp?: string;
   follow_up?: string;
   is_archive: boolean;
   type?: string;
@@ -96,7 +95,7 @@ const formSchema = z.object({
   platform: z.string().min(1, 'Please select a platform'),
   status: z.string().min(1, 'Please select a status'),
   salary: z.string().optional(),
-  hrContact: z.string().email('Please enter a valid email').optional().or(z.literal('')),
+  hr_contact: z.string().email('Please enter a valid email').optional().or(z.literal('')),
   referral: z.string().optional(),
   dateApplied: z.string().min(1, 'Application date is required'),
   follow_up: z.string().optional(),
@@ -146,9 +145,9 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
     platform: getPlatformValue(application.platform),
     status: getStatusValue(application.status),
     salary: application.salary ? String(application.salary) : '',
-    hrContact: application.hrContact || '',
+    hr_contact: application.hr_contact || '',
     referral: application.referral || '',
-    dateApplied: application.dateApplied || '',
+    dateApplied: application.date_applied || '',
     follow_up: application.follow_up || '',
     type: application.type || 'full-time',
     isRemote: application.is_remote ?? false,
@@ -172,7 +171,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
         platform: platforms.find(p => p.value === formData.platform)?.label || formData.platform,
         status: statuses.find(s => s.value === formData.status)?.label || formData.status,
         salary: formData.salary ? parseFloat(formData.salary) : null,
-        hr_contact: formData.hrContact || null,
+        hr_contact: formData.hr_contact || null,
         referral: formData.referral || null,
         date_applied: formData.dateApplied,
         follow_up: formData.follow_up || null,
@@ -508,7 +507,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                         />
                         <FormField
                           control={form.control}
-                          name="hrContact"
+                          name="hr_contact"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-foreground font-medium">HR Contact Email</FormLabel>
@@ -588,7 +587,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                         <Calendar className="w-4 h-4 text-primary" />
                         <div>
                           <p className="text-sm text-muted-foreground">Date Applied</p>
-                          <p className="text-foreground font-medium">{application.dateApplied}</p>
+                          <p className="text-foreground font-medium">{application.date_applied}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
@@ -621,7 +620,7 @@ export function ApplicationDetails({ application, isOpen, onClose, editMode = fa
                         <Mail className="w-4 h-4 text-secondary" />
                         <div>
                           <p className="text-sm text-muted-foreground">HR Contact</p>
-                          <p className="text-foreground font-medium">{application.hrContact || "Not available"}</p>
+                          <p className="text-foreground font-medium">{application.hr_contact || "Not available"}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">

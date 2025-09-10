@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { TrendingUp, Users, Target, Zap, Archive, RefreshCw, XCircle, CheckCircle2 } from "lucide-react";
 import React, { useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
+import Papa from 'papaparse';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area,
   PieChart, Pie, Cell, BarChart, Bar, ScatterChart, Scatter
@@ -156,10 +157,40 @@ export default function Analytics() {
     return typeOrder.map(type => ({ name: typeLabels[type], value: counts[type], color: typeColors[type] }));
   }, [activeApps]);
 
+  const handleExport = () => {
+    const dataToExport = applications.map(app => ({
+      "Date Applied": app.date_applied,
+      "Title": app.title,
+      "Company": app.company,
+      "Status": app.status,
+      "Type": app.type,
+      "Salary": app.salary,
+      "Location": app.location,
+      "Remote": app.is_remote,
+      "Platform": app.platform,
+      "Follow Up Date": app.follow_up,
+      "Referral": app.referral,
+      "HR Contact": app.hr_contact,
+      "Notes": app.notes,
+      "Description": app.description,
+    }));
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'job_applications.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col space-y-6 w-full p-4 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Analytics
@@ -167,16 +198,16 @@ export default function Analytics() {
           </h1>
           <p className="text-muted-foreground">Insights into your job search performance</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="border-border/50 hover:border-primary/50">
-            <Download className="w-4 h-4 mr-2" />
-            Export
+        <div className="flex gap-3 w-full sm:w-auto">
+          <Button variant="outline" className="border-border/50 hover:border-primary/50 w-full sm:w-auto" onClick={handleExport}>
+            <Download className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export</span>
           </Button>
         </div>
       </div>
 
       {/* Stat Cards: 2x4 grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {(() => {
           // Calculations
           const totalActive = activeApps.length;
@@ -394,20 +425,12 @@ export default function Analytics() {
         </div>
       ) : (
         <div className="w-full rounded-2xl border border-border/50 bg-background shadow-elegant p-8 mb-8">
-          {/* Headings row, inside the parent card */}
-          <div className="w-full flex flex-row gap-6 mb-2">
-            <div className="w-full lg:w-2/5 min-w-[180px] flex flex-col items-center lg:items-start">
-              <h2 className="text-2xl font-bold text-foreground w-full text-left py-4">Job Type Distribution</h2>
-            </div>
-            <div className="w-full lg:w-3/5 flex flex-col items-center lg:items-start">
-              <h2 className="text-2xl font-bold text-foreground text-left py-4 w-full">Applications by Platform</h2>
-            </div>
-          </div>
           {/* Charts row, two small gradient cards */}
           <div className="w-full flex flex-col lg:flex-row gap-8">
             {/* Job Type Distribution Donut Chart */}
-            <div className="w-full lg:w-2/5 rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6 flex flex-col items-center justify-center mb-8 lg:mb-0">
-              <div className="h-80 w-full flex flex-col items-center justify-center">
+            <div className="w-full lg:w-2/5 flex flex-col items-center justify-center mb-8 lg:mb-0">
+              <h2 className="text-2xl font-bold text-foreground w-full text-left py-4">Job Type Distribution</h2>
+              <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6 h-80 w-full flex flex-col items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <PieChart width={360} height={288}>
@@ -458,8 +481,9 @@ export default function Analytics() {
               </div>
             </div>
             {/* Applications by Platform Bar Chart */}
-            <div className="w-full lg:w-3/5 rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6 flex flex-col items-center justify-center lg:items-start">
-              <div className="h-72 w-full flex items-center justify-center">
+            <div className="w-full lg:w-3/5 flex flex-col items-center justify-center lg:items-start">
+              <h2 className="text-2xl font-bold text-foreground text-left py-4 w-full">Applications by Platform</h2>
+              <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 shadow-elegant p-6 h-80 w-full flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={platformData} layout="vertical" margin={{ left: 20, right: 40, top: 10, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -491,21 +515,10 @@ export default function Analytics() {
       {/* New Analytics Section: Heat Map, Bubble Chart, Table */}
       {activeApps.length === 0 ? null : (
         <div className="w-full rounded-2xl border border-border/50 bg-background shadow-elegant p-8 mb-8">
-          {/* Titles Row */}
-          <div className="w-full flex flex-row gap-12 mb-2 justify-between">
-            <div className="flex-1 min-w-[120px] flex flex-col items-start">
-              <h2 className="text-xl font-bold text-foreground w-full text-left">Top Locations</h2>
-            </div>
-            <div className="flex-1 min-w-[120px] flex flex-col items-start ml-8 mr-8">
-              <h2 className="text-xl font-bold text-foreground w-full text-left">Top Companies</h2>
-            </div>
-            <div className="flex-1 min-w-[120px] flex flex-col items-start">
-              <h2 className="text-xl font-bold text-foreground w-full text-left">Top Job Titles</h2>
-            </div>
-          </div>
           <div className="w-full flex flex-col lg:flex-row gap-12 justify-between">
             {/* Heat Map for Top Locations */}
             <div className="flex-1 flex flex-col items-start justify-center">
+              <h2 className="text-xl font-bold text-foreground w-full text-left mb-2">Top Locations</h2>
               {(() => {
                 // Aggregate top 6 locations
                 const locationCounts: Record<string, number> = {};
@@ -563,7 +576,8 @@ export default function Analytics() {
               })()}
             </div>
             {/* Table for Top 5 Companies */}
-            <div className="flex-1 flex flex-col items-start justify-center ml-8 mr-8">
+            <div className="flex-1 flex flex-col items-start justify-center ml-0 lg:ml-8 mr-0 lg:mr-8">
+              <h2 className="text-xl font-bold text-foreground w-full text-left mb-2">Top Companies</h2>
               {(() => {
                 // Aggregate top 5 companies
                 const companyCounts: Record<string, number> = {};
@@ -597,6 +611,7 @@ export default function Analytics() {
             </div>
             {/* Table for Top 5 Job Titles */}
             <div className="flex-1 flex flex-col items-start justify-center">
+              <h2 className="text-xl font-bold text-foreground w-full text-left mb-2">Top Job Titles</h2>
               {(() => {
                 // Aggregate top 5 job titles
                 const titleCounts: Record<string, number> = {};
